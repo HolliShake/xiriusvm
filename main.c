@@ -58,7 +58,7 @@ int main() {
         { "A": 65, "B": 66, "C": 66.102 }["c"];
     */
 
-    opcode_push_const(store, XS_value_new_cstring(context, "B"));
+    opcode_push_const(store, XS_value_new_cstring(context, "C"));
     opcode_push_const(store, XS_value_new_cstring(context, "A"));
     opcode_push_const(store, XS_value_new_cint(context, 65));
     opcode_push_const(store, XS_value_new_cstring(context, "B"));
