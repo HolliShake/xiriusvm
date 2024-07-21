@@ -47,9 +47,9 @@ int main() {
     */
 
     // if (3 > 2)
-    opcode_push_const(store, XS_value_new_cint(2));
     opcode_push_const(store, XS_value_new_cint(3));
-    opcode_compare_less(store);
+    opcode_push_const(store, XS_value_new_cint(2));
+    opcode_compare_greater(store);
     XS_instruction* jump1 =
     opcode_pop_jump_if_false(store, 0);
         opcode_push_const(store, XS_value_new_cstring("Nah"));
