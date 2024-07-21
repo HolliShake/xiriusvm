@@ -33,7 +33,9 @@ int main() {
     opcode_push_const(store, XS_value_new_cfloat(context, 10.4));
     opcode_binary_mul(store);
     opcode_pop_top(store);
-    opcode_push_const(store, XS_value_new_cstring(context, "Hello, "));
+    opcode_push_const(store, XS_value_new_cstring(context, "Hello"));
+    opcode_push_const(store, XS_value_new_cstring(context, ", "));
+    opcode_binary_add(store);
     opcode_push_const(store, XS_value_new_cstring(context, "World!"));
     opcode_binary_add(store);
     opcode_pop_top(store);
