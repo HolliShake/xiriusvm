@@ -1,9 +1,22 @@
 #include "global.h"
 #include "inttypes.h"
 #include "context.h"
+#include "object.h"
 
 #ifndef XSVALUE_H
 #define XSVALUE_H
+    typedef enum xirius_value_type {
+        XS_INT,
+        XS_FLOAT,
+        XS_STRING,
+        XS_BOOL,
+        XS_NULL,
+        XS_OBJECT,
+        XS_NATIVE_FUNCTION,
+        XS_FUNCTION,
+        XS_ASYNC_FUNCTION
+    } XS_value_type;
+
     typedef struct xirius_value_struct XS_value;
     typedef struct xirius_value_struct {
         bool marked;
@@ -14,19 +27,10 @@
 
         // Data
         int argc;
-        bool is_async;
+        bool async;
 
-        enum type {
-            XS_INT,
-            XS_FLOAT,
-            XS_STRING,
-            XS_BOOL,
-            XS_NULL,
-            XS_OBJECT,
-            XS_NATIVE_FUNCTION,
-            XS_FUNCTION,
-            XS_ASYNC_FUNCTION
-        } type;
+        // Type
+        XS_value_type type;
 
         union value {
             int64_t int_value; // 64-bit integer
@@ -39,15 +43,16 @@
 
     typedef XS_value* (*cfunction_t)(XS_context* context, XS_value* args[], int argc);
 
-    EXPORT XS_value* XS_value_new_cint(const long long int value);
-    EXPORT XS_value* XS_value_new_cfloat(const double value);
-    EXPORT XS_value* XS_value_new_cstring(const char* value);
-    EXPORT XS_value* XS_value_new_cbool(const bool value);
-    EXPORT XS_value* XS_value_new_cnull();
-    EXPORT char* XS_value_to_string(XS_value* value);
+    EXPORT XS_value* XS_value_new_cint(XS_context* context, const long long int value);
+    EXPORT XS_value* XS_value_new_cfloat(XS_context* context, const double value);
+    EXPORT XS_value* XS_value_new_cstring(XS_context* context, const char* value);
+    EXPORT XS_value* XS_value_new_cbool(XS_context* context, const bool value);
+    EXPORT XS_value* XS_value_new_cnull(XS_context* context);
+    EXPORT XS_value* XS_value_new_object(XS_context* context);
+    EXPORT const char* XS_value_to_cstring(XS_value* value);
     
     // Cfunction type
-    EXPORT XS_value* XS_value_new_cfunction(cfunction_t cfunction, const char* name, int argc);
+    EXPORT XS_value* XS_value_new_cfunction(cfunction_t cfunction, bool async, const char* name, int argc);
 
     // Type Checker
     EXPORT bool XS_value_is_int(XS_value* value);
@@ -58,4 +63,7 @@
     EXPORT bool XS_value_is_null(XS_value* value);
     EXPORT bool XS_value_is_satisfiable(XS_value* value);
     EXPORT bool XS_value_is_native_function(XS_value* value);
+    // Utility
+    EXPORT long long int XS_value_hash(XS_value* value);
+    EXPORT bool XS_value_equals(XS_value* a, XS_value* b);
 #endif

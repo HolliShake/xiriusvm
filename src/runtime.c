@@ -18,13 +18,13 @@ EXPORT XS_runtime* XS_runtime_new() {
 #define OPERATION_MUL(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cint((const long long int) (a->value.int_value * b->value.int_value));\
+            c = XS_value_new_cint(context, (const long long int) (a->value.int_value * b->value.int_value));\
         } else if (XS_value_is_float(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cfloat((const long double) (a->value.float_value * b->value.float_value));\
+            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value * b->value.float_value));\
         } else if (XS_value_is_int(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cfloat((const long double) (a->value.int_value * b->value.float_value));\
+            c = XS_value_new_cfloat(context, (const long double) (a->value.int_value * b->value.float_value));\
         } else if (XS_value_is_float(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cfloat((const long double) (a->value.float_value * b->value.int_value));\
+            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value * b->value.int_value));\
         } else {\
             c = NULL;\
         }\
@@ -34,15 +34,15 @@ EXPORT XS_runtime* XS_runtime_new() {
 #define OPERATION_ADD(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cint((const long long int) (a->value.int_value + b->value.int_value));\
+            c = XS_value_new_cint(context, (const long long int) (a->value.int_value + b->value.int_value));\
         } else if (XS_value_is_float(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cfloat((const long double) (a->value.float_value + b->value.float_value));\
+            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value + b->value.float_value));\
         } else if (XS_value_is_int(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cfloat((const long double) (a->value.int_value + b->value.float_value));\
+            c = XS_value_new_cfloat(context, (const long double) (a->value.int_value + b->value.float_value));\
         } else if (XS_value_is_float(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cfloat((const long double) (a->value.float_value + b->value.int_value));\
+            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value + b->value.int_value));\
         } else if (XS_value_is_string(a) && XS_value_is_string(b)) {\
-            c = XS_value_new_cstring(str__add(a->value.string_value, b->value.string_value));\
+            c = XS_value_new_cstring(context, str__add(a->value.string_value, b->value.string_value));\
         } else {\
             c = NULL;\
         }\
@@ -52,13 +52,13 @@ EXPORT XS_runtime* XS_runtime_new() {
 #define OPERATION_LT(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.int_value < b->value.int_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.int_value < b->value.int_value));\
         } else if (XS_value_is_float(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.float_value < b->value.float_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.float_value < b->value.float_value));\
         } else if (XS_value_is_int(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.int_value < b->value.float_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.int_value < b->value.float_value));\
         } else if (XS_value_is_float(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.float_value < b->value.int_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.float_value < b->value.int_value));\
         } else {\
             c = NULL;\
         }\
@@ -68,13 +68,13 @@ EXPORT XS_runtime* XS_runtime_new() {
 #define OPERATION_GT(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.int_value > b->value.int_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.int_value > b->value.int_value));\
         } else if (XS_value_is_float(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.float_value > b->value.float_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.float_value > b->value.float_value));\
         } else if (XS_value_is_int(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.int_value > b->value.float_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.int_value > b->value.float_value));\
         } else if (XS_value_is_float(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.float_value > b->value.int_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.float_value > b->value.int_value));\
         } else {\
             c = NULL;\
         }\
@@ -84,13 +84,13 @@ EXPORT XS_runtime* XS_runtime_new() {
 #define OPERATION_GTE(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.int_value >= b->value.int_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.int_value >= b->value.int_value));\
         } else if (XS_value_is_float(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.float_value >= b->value.float_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.float_value >= b->value.float_value));\
         } else if (XS_value_is_int(a) && XS_value_is_float(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.int_value >= b->value.float_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.int_value >= b->value.float_value));\
         } else if (XS_value_is_float(a) && XS_value_is_int(b)) {\
-            c = XS_value_new_cbool((const bool) (a->value.float_value >= b->value.int_value));\
+            c = XS_value_new_cbool(context, (const bool) (a->value.float_value >= b->value.int_value));\
         } else {\
             c = NULL;\
         }\
@@ -109,11 +109,14 @@ EXPORT void XS_execute(XS_context* context, store_t* store) {
 
     // Call stack
     size_t call_stack_base = 0;
+    size_t CALL_STACK_INDEXES[MAX_STACK_SIZE];
     store_t* CALL_STACK[MAX_STACK_SIZE];
+    
     // Initialize call stack
+    CALL_STACK_INDEXES[call_stack_base] = 0;
     CALL_STACK[call_stack_base] = store;
 
-    size_t i = 0;
+    size_t i = CALL_STACK_INDEXES[call_stack_base];
     for (;;) {
         XS_instruction* instruction = store->instructions[i++];
         if (instruction == NULL) {
@@ -123,9 +126,21 @@ EXPORT void XS_execute(XS_context* context, store_t* store) {
             // TODO: Throw error
         }
         switch (instruction->opcode) {
+            // Push constant
             case PUSH_CONST:
                 PUSH(instruction->value_0);
                 break;
+            // Object operations
+            case MAKE_OBJECT: {
+                XS_value* obj = XS_value_new_object(context);
+                for (size_t j = 0; j < instruction->data_0; j++) {
+                    XS_value* val = POP();
+                    XS_value* key = POP();
+                    object_set(obj->value.object, key, val);
+                }
+                PUSH(obj);
+                break;
+            }
             // Other operations
             case POP_TOP:
                 POP();

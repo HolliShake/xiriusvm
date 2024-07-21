@@ -32,4 +32,5 @@
     char* str__new(const char* str);
     char* str__add(char* str0, char* str1);
     char* str__format(const char* format, ...);
+    bool str__equals(const char* str0, const char* str1);
 #endif

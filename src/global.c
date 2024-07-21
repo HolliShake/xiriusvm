@@ -26,3 +26,7 @@ char* str__format(const char* format, ...) {
     va_end(args);
     return buffer;
 }
+
+bool str__equals(const char* str0, const char* str1) {
+    return strcmp(str0, str1) == 0;
+}

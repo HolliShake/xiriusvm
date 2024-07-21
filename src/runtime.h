@@ -3,6 +3,7 @@
 #include "store.h"
 #include "opcode.h"
 #include "xsvalue.h"
+#include "object.h"
 
 #ifndef RUNTIME_H
 #define RUNTIME_H

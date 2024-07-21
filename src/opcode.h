@@ -6,6 +6,8 @@
 #define OPCODE_H
     typedef enum opcode_enum {
         PUSH_CONST,
+        // Object operations
+        MAKE_OBJECT,
         // Other operations
         POP_TOP,
         CALL,
@@ -55,6 +57,8 @@
     EXPORT XS_instruction* instruction_new(opcode_t opcode);
     // Push constant
     EXPORT void opcode_push_const(store_t* store, XS_value* value);
+    // Object operations
+    EXPORT void opcode_make_object(store_t* store, size_t pair_count);
     // Other operations
     EXPORT void opcode_pop_top(store_t* store);
     EXPORT void opcode_call(store_t* store, size_t argc);
@@ -82,7 +86,6 @@
     EXPORT XS_instruction* opcode_pop_jump_if_true(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_jump_absolute(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_jump_forward(store_t* store, size_t offset);
-
     // Util
     EXPORT size_t opcode_get_current_jump_offset(store_t* store);
     EXPORT void opcode_set_jump_offset(XS_instruction* instruction, size_t offset);

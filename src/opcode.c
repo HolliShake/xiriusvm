@@ -28,6 +28,14 @@ EXPORT void opcode_push_const(store_t* store, XS_value* value) {
     store_push(store, instruction);
 }
 
+// Object operations
+EXPORT void opcode_make_object(store_t* store, size_t pair_count) {
+    XS_instruction* instruction = instruction_new(MAKE_OBJECT);
+        instruction->data_0 = pair_count;
+    // Push to store
+    store_push(store, instruction);
+}
+
 // Other operations
 EXPORT void opcode_pop_top(store_t* store) {
     XS_instruction* instruction = instruction_new(POP_TOP);
