@@ -1,0 +1,61 @@
+#include "global.h"
+#include "inttypes.h"
+#include "context.h"
+
+#ifndef XSVALUE_H
+#define XSVALUE_H
+    typedef struct xirius_value_struct XS_value;
+    typedef struct xirius_value_struct {
+        bool marked;
+        XS_value* next;
+        
+        // If named
+        char* name;
+
+        // Data
+        int argc;
+        bool is_async;
+
+        enum type {
+            XS_INT,
+            XS_FLOAT,
+            XS_STRING,
+            XS_BOOL,
+            XS_NULL,
+            XS_OBJECT,
+            XS_NATIVE_FUNCTION,
+            XS_FUNCTION,
+            XS_ASYNC_FUNCTION
+        } type;
+
+        union value {
+            int64_t int_value; // 64-bit integer
+            double float_value; // 64-bit float|double
+            char* string_value;
+            bool bool_value;
+            void* object;
+        } value;
+    } XS_value;
+
+    typedef XS_value* (*cfunction_t)(XS_context* context, XS_value* args[], int argc);
+
+    EXPORT XS_value* XS_value_new_cint(const long long int value);
+    EXPORT XS_value* XS_value_new_cfloat(const double value);
+    EXPORT XS_value* XS_value_new_cstring(const char* value);
+    EXPORT XS_value* XS_value_new_cbool(const bool value);
+    EXPORT XS_value* XS_value_new_cnull();
+    EXPORT char* XS_value_to_string(XS_value* value);
+    
+    // Cfunction type
+    EXPORT XS_value* XS_value_new_cfunction(cfunction_t cfunction, const char* name, int argc);
+
+    // Type Checker
+    EXPORT bool XS_value_is_int(XS_value* value);
+    EXPORT bool XS_value_is_float(XS_value* value);
+    EXPORT bool XS_value_is_number(XS_value* value);
+    EXPORT bool XS_value_is_string(XS_value* value);
+    EXPORT bool XS_value_is_bool(XS_value* value);
+    EXPORT bool XS_value_is_null(XS_value* value);
+    EXPORT bool XS_value_is_satisfiable(XS_value* value);
+    EXPORT bool XS_value_is_native_function(XS_value* value);
+#endif
