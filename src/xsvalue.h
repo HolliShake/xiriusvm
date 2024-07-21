@@ -49,6 +49,8 @@
     EXPORT XS_value* XS_value_new_cbool(XS_context* context, const bool value);
     EXPORT XS_value* XS_value_new_cnull(XS_context* context);
     EXPORT XS_value* XS_value_new_object(XS_context* context);
+        EXPORT XS_value* XS_value_get_object_property_from_cstring(XS_value* object, const char* key);
+        EXPORT XS_value* XS_value_get_object_property(XS_value* object, XS_value* key);
     EXPORT const char* XS_value_to_cstring(XS_value* value);
     
     // Cfunction type
@@ -62,6 +64,7 @@
     EXPORT bool XS_value_is_bool(XS_value* value);
     EXPORT bool XS_value_is_null(XS_value* value);
     EXPORT bool XS_value_is_satisfiable(XS_value* value);
+    EXPORT bool XS_value_is_object(XS_value* value);
     EXPORT bool XS_value_is_native_function(XS_value* value);
     // Utility
     EXPORT long long int XS_value_hash(XS_value* value);

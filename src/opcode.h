@@ -7,6 +7,7 @@
     typedef enum opcode_enum {
         PUSH_CONST,
         // Object operations
+        GET_ATTRIBUTE,
         MAKE_OBJECT,
         // Other operations
         POP_TOP,
@@ -58,6 +59,7 @@
     // Push constant
     EXPORT void opcode_push_const(store_t* store, XS_value* value);
     // Object operations
+    EXPORT void opcode_get_attribute(store_t* store);
     EXPORT void opcode_make_object(store_t* store, size_t pair_count);
     // Other operations
     EXPORT void opcode_pop_top(store_t* store);

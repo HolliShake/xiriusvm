@@ -29,6 +29,12 @@ EXPORT void opcode_push_const(store_t* store, XS_value* value) {
 }
 
 // Object operations
+EXPORT void opcode_get_attribute(store_t* store) {
+    XS_instruction* instruction = instruction_new(GET_ATTRIBUTE);
+    // Push to store
+    store_push(store, instruction);
+}
+
 EXPORT void opcode_make_object(store_t* store, size_t pair_count) {
     XS_instruction* instruction = instruction_new(MAKE_OBJECT);
         instruction->data_0 = pair_count;

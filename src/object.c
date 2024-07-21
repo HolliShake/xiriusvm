@@ -1,6 +1,6 @@
 #include "object.h"
 
- #ifndef XSVALUE_H
+ #ifndef XSVALUE_H // src/xsvalue.h
     /*virtual*/ typedef struct xirius_value_struct XS_value;
     /*virtual*/ extern const char* XS_value_to_cstring(XS_value* value);
     /*virtual*/ extern bool XS_value_equals(XS_value* a, XS_value* b);
@@ -30,7 +30,6 @@ EXPORT void object_set(object_t* object, XS_value* key, XS_value* value) {
         }
         node = node->next;
     }
-
     object_node_t* new_node = XS_malloc(sizeof(object_node_t));
     assert_allocation(new_node);
     new_node->key = key;
@@ -48,6 +47,21 @@ EXPORT XS_value* object_get(object_t* object, XS_value* key) {
     object_node_t* node = object->buckets[hash];
     while (node != NULL) {
         if (XS_value_equals(node->key, key)) {
+            return node->value;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
+
+// DEFINED IN src/xsvalue.c
+extern int64_t hash_string(const char* str);
+
+EXPORT XS_value* object_get_from_cstring(object_t* object, const char* key) {
+    size_t hash = hash_string(key) % object->capacity;
+    object_node_t* node = object->buckets[hash];
+    while (node != NULL) {
+        if (str__equals(XS_value_to_cstring(node->key), key)) {
             return node->value;
         }
         node = node->next;

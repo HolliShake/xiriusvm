@@ -131,6 +131,18 @@ EXPORT void XS_execute(XS_context* context, store_t* store) {
                 PUSH(instruction->value_0);
                 break;
             // Object operations
+            case GET_ATTRIBUTE: {
+                XS_value* obj = POP();
+                XS_value* ind = POP();
+                if (XS_value_is_object(obj)) {
+                    XS_value* val = object_get(obj->value.object, ind);
+                    PUSH(val);
+                } else {
+                    fprintf(stderr, "%s::%s[%d]: Not implemented yet!!!\n", __FILE__, __func__, __LINE__);
+                    exit(1);
+                }
+                break;
+            }
             case MAKE_OBJECT: {
                 XS_value* obj = XS_value_new_object(context);
                 for (size_t j = 0; j < instruction->data_0; j++) {

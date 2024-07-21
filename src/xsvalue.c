@@ -46,6 +46,13 @@ EXPORT XS_value *XS_value_new_object(XS_context* context) {
     new_value->value.object = object_new();
     return new_value;
 }
+    EXPORT XS_value* XS_value_get_object_property_from_cstring(XS_value* object, const char* key) {
+        return object_get_from_cstring(object->value.object, key);
+    }
+
+    EXPORT XS_value* XS_value_get_object_property(XS_value* object, XS_value* key) {
+        return object_get(object->value.object, key);
+    }
 
 EXPORT const char* XS_value_to_cstring(XS_value* value) {
     switch (value->type) {
@@ -116,6 +123,10 @@ EXPORT bool XS_value_is_satisfiable(XS_value* value) {
     return false;
 }
 
+EXPORT bool XS_value_is_object(XS_value* value) {
+    return value->type == XS_OBJECT;
+}
+
 EXPORT bool XS_value_is_native_function(XS_value* value) {
     return value->type == XS_NATIVE_FUNCTION;
 }
@@ -142,7 +153,6 @@ int64_t hash_double(double d) {
     return hash;
 }
 
-static
 int64_t hash_string(const char* str) {
     int64_t hash = 0;
     for (size_t i = 0; i < strlen(str); i++) {

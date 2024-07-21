@@ -15,7 +15,7 @@ XS_value* println(XS_context* context, XS_value** argv, int argc) {
 }
 
 int main() {
-    XS_value* println_fn = XS_value_new_cfunction(println, true, "println", 2);
+    XS_value* println_fn = XS_value_new_cfunction(println, false, "println", 2);
 
     XS_runtime* runtime = XS_runtime_new();
     XS_context* context = XS_context_new(runtime);
@@ -41,7 +41,7 @@ int main() {
     opcode_pop_top(store);
 
     /*
-        println("Value:", { "A": 65, "B": 66 });
+        println("Value:", { "A": 65, "B": 66, "C": 66.102 });
     */
     opcode_push_const(store, XS_value_new_cstring(context, "A"));
     opcode_push_const(store, XS_value_new_cint(context, 65));
@@ -51,6 +51,23 @@ int main() {
     opcode_push_const(store, XS_value_new_cfloat(context, 66.102));
     opcode_make_object(store, 3);
     opcode_push_const(store, XS_value_new_cstring(context, "Value:"));
+    opcode_push_const(store, println_fn);
+    opcode_call(store, 2);
+
+    /*
+        { "A": 65, "B": 66, "C": 66.102 }["c"];
+    */
+
+    opcode_push_const(store, XS_value_new_cstring(context, "B"));
+    opcode_push_const(store, XS_value_new_cstring(context, "A"));
+    opcode_push_const(store, XS_value_new_cint(context, 65));
+    opcode_push_const(store, XS_value_new_cstring(context, "B"));
+    opcode_push_const(store, XS_value_new_cint(context, 66));
+    opcode_push_const(store, XS_value_new_cstring(context, "C"));
+    opcode_push_const(store, XS_value_new_cfloat(context, 66.102));
+    opcode_make_object(store, 3);
+    opcode_get_attribute(store);
+    opcode_push_const(store, XS_value_new_cstring(context, "LOADED:"));
     opcode_push_const(store, println_fn);
     opcode_call(store, 2);
 
