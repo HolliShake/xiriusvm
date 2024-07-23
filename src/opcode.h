@@ -32,6 +32,7 @@
         // Jumps
         JUMP_IF_FALSE_OR_POP,
         JUMP_IF_TRUE_OR_POP,
+        JUMP_IF_NOT_ERROR,
         POP_JUMP_IF_FALSE,
         POP_JUMP_IF_TRUE,
         JUMP_ABSOLUTE,
@@ -84,6 +85,7 @@
     // Jumps
     EXPORT XS_instruction* opcode_jump_if_false_or_pop(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_jump_if_true_or_pop(store_t* store, size_t offset);
+    EXPORT XS_instruction* opcode_jump_if_not_error(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_pop_jump_if_false(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_pop_jump_if_true(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_jump_absolute(store_t* store, size_t offset);
@@ -91,5 +93,6 @@
     // Util
     EXPORT size_t opcode_get_current_jump_offset(store_t* store);
     EXPORT void opcode_set_jump_offset(XS_instruction* instruction, size_t offset);
+    EXPORT void opcode_jump_to_current_offset(store_t* store, XS_instruction* instruction);
     EXPORT size_t opcode_get_jump_offset(XS_instruction* instruction);
 #endif

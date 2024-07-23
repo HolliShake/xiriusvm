@@ -170,6 +170,14 @@ EXPORT XS_instruction* opcode_jump_if_true_or_pop(store_t* store, size_t offset)
     return instruction;
 }
 
+EXPORT XS_instruction* opcode_jump_if_not_error(store_t* store, size_t offset) {
+    XS_instruction* instruction = instruction_new(JUMP_IF_NOT_ERROR);
+        instruction->offset_0 = offset;
+    // Push to store
+    store_push(store, instruction);
+    return instruction;
+}
+
 EXPORT XS_instruction* opcode_pop_jump_if_false(store_t* store, size_t offset) {
     XS_instruction* instruction = instruction_new(POP_JUMP_IF_FALSE);
         instruction->offset_0 = offset;
@@ -228,6 +236,10 @@ EXPORT void opcode_set_jump_offset(XS_instruction* instruction, size_t offset) {
     opcode_assert_jump(instruction);
     instruction->is_jump_set = true;
     instruction->offset_0 = offset;
+}
+
+EXPORT void opcode_jump_to_current_offset(store_t* store, XS_instruction* instruction) {
+    opcode_set_jump_offset(instruction, opcode_get_current_jump_offset(store));
 }
 
 EXPORT size_t opcode_get_jump_offset(XS_instruction* instruction) {

@@ -14,7 +14,7 @@
         XS_OBJECT,
         XS_NATIVE_FUNCTION,
         XS_FUNCTION,
-        XS_ASYNC_FUNCTION
+        XS_ERROR
     } XS_value_type;
 
     typedef struct xirius_value_struct XS_value;
@@ -66,6 +66,8 @@
     EXPORT bool XS_value_is_satisfiable(XS_value* value);
     EXPORT bool XS_value_is_object(XS_value* value);
     EXPORT bool XS_value_is_native_function(XS_value* value);
+    EXPORT bool XS_value_is_function(XS_value* value);
+    EXPORT bool XS_value_is_error(XS_value* value);
     // Utility
     EXPORT long long int XS_value_hash(XS_value* value);
     EXPORT bool XS_value_equals(XS_value* a, XS_value* b);

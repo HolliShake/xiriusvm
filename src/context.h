@@ -12,8 +12,11 @@
     typedef struct xirius_context_struct {
         XS_runtime* runtime;
         XS_value* global_object;
+
+
     } XS_context;
 
     EXPORT XS_context* XS_context_new(XS_runtime* runtime);
-    EXPORT XS_runtime* context_get_runtime(XS_context* ctx);
+    EXPORT XS_runtime* XS_context_get_runtime(XS_context* ctx);
+    EXPORT void XS_context_free(XS_context* ctx);
 #endif

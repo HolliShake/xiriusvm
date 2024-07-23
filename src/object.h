@@ -26,4 +26,6 @@
     EXPORT XS_value* object_get_from_cstring(object_t* object, const char* key);
     EXPORT void object_resize(object_t* object, size_t new_capacity);
     EXPORT char* object_to_string(object_t* object);
+    EXPORT bool object_has_attr_cstring(object_t* object, const char* key);
+    EXPORT bool object_has_attr(object_t* object, XS_value* key);
 #endif

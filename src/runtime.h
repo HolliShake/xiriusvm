@@ -18,6 +18,7 @@
     } XS_runtime;
 
     EXPORT XS_runtime* XS_runtime_new();
-    EXPORT void XS_execute(XS_context* context, store_t* store);
-    EXPORT void XS_execute_event_loop(XS_context* context);
+    EXPORT void XS_runtime_execute(XS_context* context, store_t* store);
+    EXPORT void XS_runtime_execute_event_loop(XS_context* context);
+    EXPORT void XS_runtime_free(XS_runtime* runtime);
 #endif

@@ -33,7 +33,7 @@ EXPORT XS_value *XS_value_new_cstring(XS_context* context, const char *value) {
 EXPORT XS_value *XS_value_new_cbool(XS_context* context, const bool value) {
     XS_value* new_value = XS_value_init(context, XS_BOOL);
     new_value->value.bool_value = value;
-    return new_value;
+    return new_value;  
 }
 
 EXPORT XS_value *XS_value_new_cnull(XS_context* context) {
@@ -129,6 +129,14 @@ EXPORT bool XS_value_is_object(XS_value* value) {
 
 EXPORT bool XS_value_is_native_function(XS_value* value) {
     return value->type == XS_NATIVE_FUNCTION;
+}
+
+EXPORT bool XS_value_is_function(XS_value* value) {
+    return value->type == XS_FUNCTION;
+}
+
+EXPORT bool XS_value_is_error(XS_value* value) {
+    return value->type == XS_ERROR;
 }
 
 // Utility

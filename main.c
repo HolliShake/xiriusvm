@@ -94,7 +94,7 @@ int main() {
         XS_instruction* jump2 =
         opcode_jump_forward(store, 0);
     // else 
-    opcode_set_jump_offset(jump1, opcode_get_current_jump_offset(store));
+    opcode_jump_to_current_offset(store, jump1);
         opcode_push_const(store, XS_value_new_cint(context, 30));
         opcode_push_const(store, XS_value_new_cint(context, 22));
         opcode_binary_add(store);
@@ -102,9 +102,12 @@ int main() {
         opcode_push_const(store, println_fn);
         opcode_call(store, 2);
         opcode_pop_top(store);
-    opcode_set_jump_offset(jump2, opcode_get_current_jump_offset(store));
+    opcode_jump_to_current_offset(store, jump2);
 
-    XS_execute(context, store);
+    XS_context_free(context);
+    XS_runtime_execute(context, store);
+    XS_runtime_free(runtime);
+
     printf("DONE!\n");
     return 0;
 }
