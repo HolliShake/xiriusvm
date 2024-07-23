@@ -11,7 +11,7 @@ XS_value* println(XS_context* context, XS_value** argv, int argc) {
         }
     }
     printf("\n");
-    return XS_value_new_cnull(context);
+    return XS_value_new_null(context);
 }
 
 int main() {
@@ -65,10 +65,13 @@ int main() {
     opcode_push_const(store, XS_value_new_cstring(context, "C"));
     opcode_push_const(store, XS_value_new_cfloat(context, 66.102));
     opcode_make_object(store, 3);
+    opcode_pop_top(store);
+    opcode_push_const(store, XS_value_new_cstring(context, "C"));
     opcode_get_attribute(store);
     opcode_push_const(store, XS_value_new_cstring(context, "LOADED:"));
     opcode_push_const(store, println_fn);
     opcode_call(store, 2);
+    opcode_pop_top(store);
 
     /*
         if (3 > 2) {

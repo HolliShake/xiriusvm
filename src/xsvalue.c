@@ -36,8 +36,17 @@ EXPORT XS_value *XS_value_new_cbool(XS_context* context, const bool value) {
     return new_value;  
 }
 
-EXPORT XS_value *XS_value_new_cnull(XS_context* context) {
-    XS_value* new_value = XS_value_init(context, XS_NULL);
+EXPORT XS_value *XS_value_new_null(XS_context* context) {
+    if (context->null_obj != NULL) {
+        return context->null_obj;
+    }
+    XS_value* new_value = context->null_obj = XS_value_init(context, XS_NULL);
+    return new_value;
+}
+
+EXPORT XS_value* XS_value_new_error(XS_context* context, const char* message) {
+    XS_value* new_value = XS_value_init(context, XS_ERROR);
+    new_value->value.string_value = str__new(message);
     return new_value;
 }
 
@@ -66,8 +75,12 @@ EXPORT const char* XS_value_to_cstring(XS_value* value) {
             return (const char*) str__format("%s", (value->value.bool_value) ? "true" : "false");
         case XS_NULL:
             return (const char*) str__new("null");
-        default:
+        case XS_ERROR:
+            return (const char*) str__format("%s", value->value.string_value);
+        case XS_OBJECT:
             return (const char*) object_to_string((object_t*) value->value.object);
+        default:
+            return str__new("[NOT IMPLEMENTED]");
     }
 }
 

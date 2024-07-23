@@ -12,7 +12,7 @@
     typedef struct xirius_context_struct {
         XS_runtime* runtime;
         XS_value* global_object;
-
+        XS_value* null_obj;
 
     } XS_context;
 

@@ -15,6 +15,7 @@ EXPORT XS_runtime* XS_runtime_new() {
     return runtime;
 }
 
+/**/// Binary operations 
 #define OPERATION_MUL(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b))\
@@ -107,13 +108,20 @@ EXPORT XS_runtime* XS_runtime_new() {
         PUSH(c);\
     }\
 
-#define ASSERT_ARGC(required, got) {\
-        if (required != got) {\
-            fprintf(stderr, "%s::%s[%d]: Expected %d arguments, got %d\n", __FILE__, __func__, __LINE__, (int) required, (int) got);\
-            exit(1);\
-        }\
+/**/// Call native function operation
+#define CALL_OR_ERROR(fn, required_argc)\
+    if (fn->argc != required_argc) {\
+        XS_value* error = XS_value_new_error(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, required_argc, fn->argc));\
+        PUSH(error);\
+        break;\
     }\
 
+#define CALL_NATIVE(fn, argv, argc)\
+    XS_value* ret = ((cfunction_t) fn->value.object)(context, argv, argc);\
+    PUSH(ret);\
+
+
+/****************************/
 EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
     XS_runtime* rt = XS_context_get_runtime(context);
 
@@ -141,11 +149,15 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                 XS_value* obj = POP();
                 XS_value* ind = POP();
                 if (XS_value_is_object(obj)) {
-                    XS_value* val = object_get(obj->value.object, ind);
-                    PUSH(val);
+                    XS_value* value = object_get(obj->value.object, ind);
+                    PUSH(
+                        ( value == NULL ) 
+                        ? XS_value_new_null(context) 
+                        : value
+                    );
+                    break;
                 } else {
-                    fprintf(stderr, "%s::%s[%d]: Not implemented yet!!!\n", __FILE__, __func__, __LINE__);
-                    exit(1);
+                    PUSH(XS_value_new_error(context, "TypeError: 'TypeName' object is not subscriptable"));
                 }
                 break;
             }
@@ -165,17 +177,16 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                 break;
             case CALL: {
                 XS_value* fn = POP();
+                XS_value* argv[255/**** Max argc is 255 ****/];
                 if (XS_value_is_native_function(fn)) {
-                    ASSERT_ARGC(fn->argc, instruction->data_0);
-                    XS_value* argv[255];
                     for (size_t j = 0; j < instruction->data_0; j++) {
                         argv[j] = POP();
                     }
-                    XS_value* ret = ((cfunction_t) fn->value.object)(context, argv, fn->argc);
-                    PUSH(ret);
-                } else {
-                    fprintf(stderr, "%s::%s[%d]: Not implemented yet!!!\n", __FILE__, __func__, __LINE__);
-                    exit(1);
+                    /**** CHECK IF SIGNITURE MATCHED ****/ 
+                    CALL_OR_ERROR(fn, instruction->data_0);
+
+                    /**** CALL FUNCTION *****************/ 
+                    CALL_NATIVE(fn, argv, instruction->data_0);
                 }
                 break;
             }

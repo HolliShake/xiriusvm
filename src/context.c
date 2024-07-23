@@ -12,6 +12,7 @@ EXPORT XS_context* XS_context_new(XS_runtime* runtime) {
 
     // Create global object
     ctx->global_object = XS_value_new_object(ctx);
+    ctx->null_obj = NULL;
 
     return ctx;
 }

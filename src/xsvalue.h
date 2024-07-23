@@ -47,7 +47,8 @@
     EXPORT XS_value* XS_value_new_cfloat(XS_context* context, const double value);
     EXPORT XS_value* XS_value_new_cstring(XS_context* context, const char* value);
     EXPORT XS_value* XS_value_new_cbool(XS_context* context, const bool value);
-    EXPORT XS_value* XS_value_new_cnull(XS_context* context);
+    EXPORT XS_value* XS_value_new_null(XS_context* context);
+    EXPORT XS_value* XS_value_new_error(XS_context* context, const char* message);
     EXPORT XS_value* XS_value_new_object(XS_context* context);
         EXPORT XS_value* XS_value_get_object_property_from_cstring(XS_value* object, const char* key);
         EXPORT XS_value* XS_value_get_object_property(XS_value* object, XS_value* key);
