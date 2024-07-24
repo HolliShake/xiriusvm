@@ -19,13 +19,13 @@ EXPORT XS_runtime* XS_runtime_new() {
 #define OPERATION_MUL(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_cint(context, (const long long int) (a->value.int_value * b->value.int_value));\
-        else if (XS_value_is_float(a) && XS_value_is_float(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value * b->value.float_value));\
-        else if (XS_value_is_int(a) && XS_value_is_float(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.int_value * b->value.float_value));\
-        else if (XS_value_is_float(a) && XS_value_is_int(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value * b->value.int_value));\
+            c = XS_value_new_int(context, (const long long int) (a->value.int_value * b->value.int_value));\
+        else if (XS_value_is_flt(a) && XS_value_is_flt(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.flt_value * b->value.flt_value));\
+        else if (XS_value_is_int(a) && XS_value_is_flt(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.int_value * b->value.flt_value));\
+        else if (XS_value_is_flt(a) && XS_value_is_int(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.flt_value * b->value.int_value));\
         else\
             c = NULL;\
         PUSH(c);\
@@ -34,15 +34,15 @@ EXPORT XS_runtime* XS_runtime_new() {
 #define OPERATION_ADD(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_cint(context, (const long long int) (a->value.int_value + b->value.int_value));\
-        else if (XS_value_is_float(a) && XS_value_is_float(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value + b->value.float_value));\
-        else if (XS_value_is_int(a) && XS_value_is_float(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.int_value + b->value.float_value));\
-        else if (XS_value_is_float(a) && XS_value_is_int(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value + b->value.int_value));\
-        else if (XS_value_is_string(a) && XS_value_is_string(b))\
-            c = XS_value_new_cstring(context, str__add(a->value.string_value, b->value.string_value));\
+            c = XS_value_new_int(context, (const long long int) (a->value.int_value + b->value.int_value));\
+        else if (XS_value_is_flt(a) && XS_value_is_flt(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.flt_value + b->value.flt_value));\
+        else if (XS_value_is_int(a) && XS_value_is_flt(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.int_value + b->value.flt_value));\
+        else if (XS_value_is_flt(a) && XS_value_is_int(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.flt_value + b->value.int_value));\
+        else if (XS_value_is_str(a) && XS_value_is_str(b))\
+            c = XS_value_new_str(context, str__add(a->value.str_value, b->value.str_value));\
         else\
             c = NULL;\
         PUSH(c);\
@@ -51,13 +51,13 @@ EXPORT XS_runtime* XS_runtime_new() {
 #define OPERATION_SUB(a, b) {\
         XS_value* c = NULL;\
         if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_cint(context, (const long long int) (a->value.int_value - b->value.int_value));\
-        else if (XS_value_is_float(a) && XS_value_is_float(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value - b->value.float_value));\
-        else if (XS_value_is_int(a) && XS_value_is_float(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.int_value - b->value.float_value));\
-        else if (XS_value_is_float(a) && XS_value_is_int(b))\
-            c = XS_value_new_cfloat(context, (const long double) (a->value.float_value - b->value.int_value));\
+            c = XS_value_new_int(context, (const long long int) (a->value.int_value - b->value.int_value));\
+        else if (XS_value_is_flt(a) && XS_value_is_flt(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.flt_value - b->value.flt_value));\
+        else if (XS_value_is_int(a) && XS_value_is_flt(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.int_value - b->value.flt_value));\
+        else if (XS_value_is_flt(a) && XS_value_is_int(b))\
+            c = XS_value_new_flt(context, (const long double) (a->value.flt_value - b->value.int_value));\
         else\
             c = NULL;\
         PUSH(c);\
@@ -65,14 +65,29 @@ EXPORT XS_runtime* XS_runtime_new() {
 
 #define OPERATION_LT(a, b) {\
         XS_value* c = NULL;\
-        if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.int_value < b->value.int_value));\
-        else if (XS_value_is_float(a) && XS_value_is_float(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.float_value < b->value.float_value));\
-        else if (XS_value_is_int(a) && XS_value_is_float(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.int_value < b->value.float_value));\
-        else if (XS_value_is_float(a) && XS_value_is_int(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.float_value < b->value.int_value));\
+        if (XS_IS_INT(a) && XS_IS_INT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_INT(a) < XS_GET_INT(b)));\
+        else if (XS_IS_FLT(a) && XS_IS_FLT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) < XS_GET_FLT(b)));\
+        else if (XS_IS_INT(a) && XS_IS_FLT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_INT(a) < XS_GET_FLT(b)));\
+        else if (XS_IS_FLT(a) && XS_IS_INT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) < XS_GET_INT(b)));\
+        else\
+            c = NULL;\
+        PUSH(c);\
+    }\
+
+#define OPERATION_LTE(a, b) {\
+        XS_value* c = NULL;\
+        if (XS_IS_INT(a) && XS_IS_INT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_INT(a) <= XS_GET_INT(b)));\
+        else if (XS_IS_FLT(a) && XS_IS_FLT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) <= XS_GET_FLT(b)));\
+        else if (XS_IS_INT(a) && XS_IS_FLT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_INT(a) <= XS_GET_FLT(b)));\
+        else if (XS_IS_FLT(a) && XS_IS_INT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) <= XS_GET_INT(b)));\
         else\
             c = NULL;\
         PUSH(c);\
@@ -80,14 +95,14 @@ EXPORT XS_runtime* XS_runtime_new() {
 
 #define OPERATION_GT(a, b) {\
         XS_value* c = NULL;\
-        if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.int_value > b->value.int_value));\
-        else if (XS_value_is_float(a) && XS_value_is_float(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.float_value > b->value.float_value));\
-        else if (XS_value_is_int(a) && XS_value_is_float(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.int_value > b->value.float_value));\
-        else if (XS_value_is_float(a) && XS_value_is_int(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.float_value > b->value.int_value));\
+        if (XS_IS_INT(a) && XS_IS_INT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_INT(a) > XS_GET_INT(b)));\
+        else if (XS_IS_FLT(a) && XS_IS_FLT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) > XS_GET_FLT(b)));\
+        else if (XS_IS_INT(a) && XS_IS_FLT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_INT(a) > XS_GET_FLT(b)));\
+        else if (XS_IS_FLT(a) && XS_IS_INT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) > XS_GET_INT(b)));\
         else\
             c = NULL;\
         PUSH(c);\
@@ -95,14 +110,14 @@ EXPORT XS_runtime* XS_runtime_new() {
 
 #define OPERATION_GTE(a, b) {\
         XS_value* c = NULL;\
-        if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.int_value >= b->value.int_value));\
-        else if (XS_value_is_float(a) && XS_value_is_float(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.float_value >= b->value.float_value));\
-        else if (XS_value_is_int(a) && XS_value_is_float(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.int_value >= b->value.float_value));\
-        else if (XS_value_is_float(a) && XS_value_is_int(b))\
-            c = XS_value_new_cbool(context, (const bool) (a->value.float_value >= b->value.int_value));\
+        if (XS_IS_INT(a) && XS_IS_INT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_INT(a) >= XS_GET_INT(b)));\
+        else if (XS_IS_FLT(a) && XS_IS_FLT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) >= XS_GET_FLT(b)));\
+        else if (XS_IS_INT(a) && XS_IS_FLT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_INT(a) >= XS_GET_FLT(b)));\
+        else if (XS_IS_FLT(a) && XS_IS_INT(b))\
+            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) >= XS_GET_INT(b)));\
         else\
             c = NULL;\
         PUSH(c);\
@@ -111,13 +126,13 @@ EXPORT XS_runtime* XS_runtime_new() {
 /**/// Call native function operation
 #define CALL_OR_ERROR(fn, required_argc)\
     if (fn->argc != required_argc) {\
-        XS_value* error = XS_value_new_error(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, required_argc, fn->argc));\
+        XS_value* error = XS_value_new_err(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, required_argc, fn->argc));\
         PUSH(error);\
         break;\
     }\
 
 #define CALL_NATIVE(fn, argv, argc)\
-    XS_value* ret = ((cfunction_t) fn->value.object)(context, argv, argc);\
+    XS_value* ret = ((cfunction_t) fn->value.obj_value)(context, argv, argc);\
     PUSH(ret);\
 
 
@@ -148,25 +163,25 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
             case GET_ATTRIBUTE: {
                 XS_value* obj = POP();
                 XS_value* ind = POP();
-                if (XS_value_is_object(obj)) {
-                    XS_value* value = object_get(obj->value.object, ind);
+                if (XS_value_is_obj(obj)) {
+                    XS_value* value = object_get(obj->value.obj_value, ind);
                     PUSH(
                         ( value == NULL ) 
-                        ? XS_value_new_null(context) 
+                        ? XS_value_new_nil(context) 
                         : value
                     );
                     break;
                 } else {
-                    PUSH(XS_value_new_error(context, "TypeError: 'TypeName' object is not subscriptable"));
+                    PUSH(XS_value_new_err(context, "TypeError: 'TypeName' object is not subscriptable"));
                 }
                 break;
             }
             case MAKE_OBJECT: {
-                XS_value* obj = XS_value_new_object(context);
+                XS_value* obj = XS_value_new_obj(context);
                 for (size_t j = 0; j < instruction->data_0; j++) {
                     XS_value* val = POP();
                     XS_value* key = POP();
-                    object_set(obj->value.object, key, val);
+                    object_set(obj->value.obj_value, key, val);
                 }
                 PUSH(obj);
                 break;
@@ -215,10 +230,22 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                 OPERATION_LT(a, b);
                 break;
             }
+            case COMPARE_LESS_EQUAL: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                OPERATION_LTE(a, b);
+                break;
+            }
             case COMPARE_GREATER: {
                 XS_value* b = POP();
                 XS_value* a = POP();
                 OPERATION_GT(a, b);
+                break;
+            }
+            case COMPARE_GREATER_EQUAL: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                OPERATION_GTE(a, b);
                 break;
             }
             // Jumps
@@ -242,7 +269,7 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
             }
             case JUMP_IF_NOT_ERROR: {
                 XS_value* top = PEEK();
-                if (!XS_value_is_error(top)) {
+                if (!XS_value_is_err(top)) {
                     i = opcode_get_jump_offset(instruction);
                     break;
                 }

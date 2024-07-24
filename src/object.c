@@ -2,7 +2,7 @@
 
  #ifndef XSVALUE_H // src/xsvalue.h
     /*virtual*/ typedef struct xirius_value_struct XS_value;
-    /*virtual*/ extern const char* XS_value_to_cstring(XS_value* value);
+    /*virtual*/ extern const char* XS_value_to_const_string(XS_value* value);
     /*virtual*/ extern bool XS_value_equals(XS_value* a, XS_value* b);
     /*virtual*/ extern long long int XS_value_hash(XS_value* value);
 #endif
@@ -62,7 +62,7 @@ EXPORT XS_value* object_get_from_cstring(object_t* object, const char* key) {
     size_t hash = hash_string(key) % object->capacity;
     object_node_t* node = object->buckets[hash];
     while (node != NULL) {
-        if (str__equals(XS_value_to_cstring(node->key), key)) {
+        if (str__equals(XS_value_to_const_string(node->key), key)) {
             return node->value;
         }
         node = node->next;
@@ -96,8 +96,8 @@ EXPORT char* object_to_string(object_t* object) {
     for (size_t i = 0; i < object->capacity; i++) {
         object_node_t* node = object->buckets[i], *copy = node;
         while (node != NULL) {
-            char* key_str = (char*) XS_value_to_cstring(node->key  );
-            char* val_str = (char*) XS_value_to_cstring(node->value);
+            char* key_str = (char*) XS_value_to_const_string(node->key  );
+            char* val_str = (char*) XS_value_to_const_string(node->value);
             char* new_str = str__format("%s: %s", key_str, val_str);
             str = str__add(old = str, new_str);
             XS_free(key_str);

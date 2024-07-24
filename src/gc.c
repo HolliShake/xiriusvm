@@ -17,8 +17,8 @@ EXPORT void XS_gc_mark(XS_gc* gc, XS_value* value) {
         return;
     }
     value->marked = true;
-    if (XS_value_is_object(value)) {
-        object_t* object = value->value.object;
+    if (XS_value_is_obj(value)) {
+        object_t* object = value->value.obj_value;
         for (size_t i = 0; i < object->capacity; i++) {
             object_node_t* node = object->buckets[i];
             while (node != NULL) {
