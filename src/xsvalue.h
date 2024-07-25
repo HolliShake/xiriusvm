@@ -43,22 +43,24 @@
 
     typedef XS_value* (*cfunction_t)(XS_context* context, XS_value* args[], int argc);
 
-    #define XS_INT(context, i) XS_value_new_int(context, i)
-    #define XS_FLT(context, f) XS_value_new_flt(context, f)
-    #define XS_STR(context, s) XS_value_new_str(context, s)
-    #define XS_BIT(context, b) XS_value_new_bit(context, b)
-    #define XS_NIL(context) XS_value_new_nil(context)
-    #define XS_ERR(context, m) XS_value_new_err(context, m)
+    #define XS_INT(context, i) XS_value_new_int(context, (const long long int) (i))
+    #define XS_FLT(context, f) XS_value_new_flt(context, (const double) (f))
+    #define XS_STR(context, s) XS_value_new_str(context, (const char* ) (s))
+    #define XS_BIT(context, b) XS_value_new_bit(context, (const bool  ) (b))
+    #define XS_NIL(context   ) XS_value_new_nil(context)
+    #define XS_ERR(context, m) XS_value_new_err(context, (const char* ) (m))
     #define XS_OBJ(context) XS_value_new_obj(context)
 
     #define XS_GET_INT(_value) _value->value.int_value
     #define XS_GET_FLT(_value) _value->value.flt_value
+    #define XS_GET_NUM(_value) (XS_IS_INT(_value) ? XS_GET_INT(_value) : XS_GET_FLT(_value))
     #define XS_GET_STR(_value) _value->value.str_value
     #define XS_GET_BIT(_value) _value->value.bit_value
     #define XS_GET_OBJ(_value) _value->value.obj_value
 
     #define XS_IS_INT(_value) (_value->type == XS_INT)
     #define XS_IS_FLT(_value) (_value->type == XS_FLT)
+    #define XS_IS_NUM(_value) (XS_IS_INT(_value) || XS_IS_FLT(_value))
     #define XS_IS_STR(_value) (_value->type == XS_STR)
     #define XS_IS_BIT(_value) (_value->type == XS_BIT)
     #define XS_IS_NIL(_value) (_value->type == XS_NIL)

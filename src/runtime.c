@@ -15,53 +15,6 @@ EXPORT XS_runtime* XS_runtime_new() {
     return runtime;
 }
 
-/**/// Binary operations 
-#define OPERATION_MUL(a, b) {\
-        XS_value* c = NULL;\
-        if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_int(context, (const long long int) (a->value.int_value * b->value.int_value));\
-        else if (XS_value_is_flt(a) && XS_value_is_flt(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.flt_value * b->value.flt_value));\
-        else if (XS_value_is_int(a) && XS_value_is_flt(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.int_value * b->value.flt_value));\
-        else if (XS_value_is_flt(a) && XS_value_is_int(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.flt_value * b->value.int_value));\
-        else\
-            c = NULL;\
-        PUSH(c);\
-    }\
-
-#define OPERATION_ADD(a, b) {\
-        XS_value* c = NULL;\
-        if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_int(context, (const long long int) (a->value.int_value + b->value.int_value));\
-        else if (XS_value_is_flt(a) && XS_value_is_flt(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.flt_value + b->value.flt_value));\
-        else if (XS_value_is_int(a) && XS_value_is_flt(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.int_value + b->value.flt_value));\
-        else if (XS_value_is_flt(a) && XS_value_is_int(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.flt_value + b->value.int_value));\
-        else if (XS_value_is_str(a) && XS_value_is_str(b))\
-            c = XS_value_new_str(context, str__add(a->value.str_value, b->value.str_value));\
-        else\
-            c = NULL;\
-        PUSH(c);\
-    }\
-
-#define OPERATION_SUB(a, b) {\
-        XS_value* c = NULL;\
-        if (XS_value_is_int(a) && XS_value_is_int(b))\
-            c = XS_value_new_int(context, (const long long int) (a->value.int_value - b->value.int_value));\
-        else if (XS_value_is_flt(a) && XS_value_is_flt(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.flt_value - b->value.flt_value));\
-        else if (XS_value_is_int(a) && XS_value_is_flt(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.int_value - b->value.flt_value));\
-        else if (XS_value_is_flt(a) && XS_value_is_int(b))\
-            c = XS_value_new_flt(context, (const long double) (a->value.flt_value - b->value.int_value));\
-        else\
-            c = NULL;\
-        PUSH(c);\
-    }\
 
 #define OPERATION_LT(a, b) {\
         XS_value* c = NULL;\
@@ -209,19 +162,48 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
             case BINARY_MUL: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                OPERATION_MUL(a, b);
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_INT(context, XS_GET_INT(a) * XS_GET_INT(b));
+                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
+                    c = XS_FLT(context, XS_GET_FLT(a) * XS_GET_FLT(b));
+                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
+                    c = XS_FLT(context, XS_GET_NUM(a) * XS_GET_NUM(b));
+                else
+                    c = NULL;
+                PUSH(c);
                 break;
             }
             case BINARY_ADD: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                OPERATION_ADD(a, b);
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_INT(context, XS_GET_INT(a) * XS_GET_INT(b));
+                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
+                    c = XS_FLT(context, XS_GET_FLT(a) * XS_GET_FLT(b));
+                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
+                    c = XS_FLT(context, XS_GET_NUM(a) * XS_GET_NUM(b));
+                else if (XS_IS_STR(a) && XS_IS_STR(b))
+                    c = XS_STR(context, str__add(XS_GET_STR(a), XS_GET_STR(b)));
+                else
+                    c = NULL;
+                PUSH(c);
                 break;
             }
             case BINARY_SUB: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                OPERATION_SUB(a, b);
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_INT(context, XS_GET_INT(a) - XS_GET_INT(b));
+                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
+                    c = XS_FLT(context, XS_GET_FLT(a) - XS_GET_FLT(b));
+                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
+                    c = XS_FLT(context, XS_GET_NUM(a) - XS_GET_NUM(b));
+                else
+                    c = NULL;
+                PUSH(c);
                 break;
             }
             case COMPARE_LESS: {
