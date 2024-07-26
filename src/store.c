@@ -4,8 +4,8 @@
     /*virtual*/ typedef struct xirius_instruction_struct XS_instruction;
 #endif
 
-EXPORT store_t* store_new() {
-    store_t* store = XS_malloc(sizeof(store_t));
+EXPORT XS_store* XS_store_new() {
+    XS_store* store = XS_malloc(sizeof(XS_store));
     assert_allocation(store);
     store->scount = 0;
     store->stack = NULL;
@@ -14,7 +14,7 @@ EXPORT store_t* store_new() {
     return store;
 }
 
-EXPORT void store_emit_line(store_t* store, char* origin, size_t line, size_t colm) {
+EXPORT void XS_store_emit_line(XS_store* store, char* origin, size_t line, size_t colm) {
     if (store->stack == NULL) {
         store->stack = XS_malloc(sizeof(char*));
         assert_allocation(store->stack);
@@ -26,7 +26,7 @@ EXPORT void store_emit_line(store_t* store, char* origin, size_t line, size_t co
     store->stack[store->scount] = NULL;
 }
 
-EXPORT void store_push(store_t* store, XS_instruction* instruction) {
+EXPORT void XS_store_push(XS_store* store, XS_instruction* instruction) {
     if (store->instructions == NULL) {
         store->instructions = XS_malloc(sizeof(XS_instruction*));
         assert_allocation(store->instructions);

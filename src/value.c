@@ -1,4 +1,4 @@
-#include "xsvalue.h"
+#include "value.h"
 
 static
 XS_value* XS_value_init(XS_context* context, XS_value_type type) {

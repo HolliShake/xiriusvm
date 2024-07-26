@@ -16,12 +16,12 @@ EXPORT XS_runtime* XS_runtime_new() {
 }
 
 /****************************/
-EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
+EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
     XS_runtime* rt = XS_context_get_runtime(context);
 
     // Call stack
     size_t   CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull, pointer = 0ull;
-    store_t* CALL_STACKF[MAX_STACK_SIZE];
+    XS_store* CALL_STACKF[MAX_STACK_SIZE];
     
     // Initialize call stack
     CALL_STACKI[call_stack_base] = 0;
@@ -271,7 +271,7 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
             case JUMP_IF_FALSE_OR_POP: {
                 XS_value* top = PEEK();
                 if (!XS_value_is_satisfiable(top)) {
-                    i = opcode_get_jump_offset(instruction);
+                    i = XS_opcode_get_jump_offset(instruction);
                     break;  
                 }
                 POP();
@@ -280,7 +280,7 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
             case JUMP_IF_TRUE_OR_POP: {
                 XS_value* top = PEEK();
                 if (XS_value_is_satisfiable(top)) {
-                    i = opcode_get_jump_offset(instruction);
+                    i = XS_opcode_get_jump_offset(instruction);
                     break;
                 }
                 POP();
@@ -289,7 +289,7 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
             case JUMP_IF_NOT_ERROR_OR_POP: {
                 XS_value* top = PEEK();
                 if (!XS_value_is_err(top)) {
-                    i = opcode_get_jump_offset(instruction);
+                    i = XS_opcode_get_jump_offset(instruction);
                     break;
                 }
                 POP();
@@ -298,20 +298,20 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
             case POP_JUMP_IF_FALSE: {
                 XS_value* top = POP();
                 if (!XS_value_is_satisfiable(top)) {
-                    i = opcode_get_jump_offset(instruction);
+                    i = XS_opcode_get_jump_offset(instruction);
                 }
                 break;
             }
             case POP_JUMP_IF_TRUE: {
                 XS_value* top = POP();
                 if (XS_value_is_satisfiable(top)) {
-                    i = opcode_get_jump_offset(instruction);
+                    i = XS_opcode_get_jump_offset(instruction);
                 }
                 break;
             }
             case JUMP_ABSOLUTE: {
                 size_t j = i;
-                i = opcode_get_jump_offset(instruction);
+                i = XS_opcode_get_jump_offset(instruction);
                 if (i > j) {
                     fprintf(stderr, "%s::%s[%d]: use JUMP_FORWARD instead of JUMP_ABSOLUTE!!!\n", __FILE__, __func__, __LINE__);
                     exit(1);
@@ -319,7 +319,7 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                 break;
             }
             case JUMP_FORWARD: {
-                i = opcode_get_jump_offset(instruction);
+                i = XS_opcode_get_jump_offset(instruction);
                 break;
             }
             default:

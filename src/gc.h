@@ -4,7 +4,7 @@
 #define XSGC_H
     
         #ifndef XSVALUE_H
-           #include "xsvalue.h"
+           #include "value.h"
         #endif
     
         typedef struct xirius_gc_struct {

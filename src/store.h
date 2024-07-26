@@ -6,14 +6,14 @@
         /*virtual*/ typedef struct xirius_instruction_struct XS_instruction;
     #endif
     
-    typedef struct store_struct {
+    typedef struct xirius_store_struct {
         size_t scount;
         char** stack; 
         size_t icount;
         XS_instruction** instructions;
-    } store_t;
+    } XS_store;
 
-    EXPORT store_t* store_new();
-    EXPORT void store_emit_line(store_t* store, char* origin, size_t line, size_t colm);
-    EXPORT void store_push(store_t* store, XS_instruction* instruction);
+    EXPORT XS_store* XS_store_new();
+    EXPORT void XS_store_emit_line(XS_store* store, char* origin, size_t line, size_t colm);
+    EXPORT void XS_store_push(XS_store* store, XS_instruction* instruction);
 #endif

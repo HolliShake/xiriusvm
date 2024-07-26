@@ -1,10 +1,11 @@
 #include "global.h"
 #include "store.h"
-#include "xsvalue.h"
+#include "value.h"
 
 #ifndef OPCODE_H
 #define OPCODE_H
-    typedef enum opcode_enum {
+    typedef enum xirius_opcode_enum {
+        LOAD_NAME,
         PUSH_CONST,
         // Object operations
         GET_ATTRIBUTE,
@@ -37,10 +38,10 @@
         POP_JUMP_IF_TRUE,
         JUMP_ABSOLUTE,
         JUMP_FORWARD
-    } opcode_t;
+    } XS_opcode;
 
     typedef struct xirius_instruction_struct {
-        opcode_t opcode;
+        XS_opcode opcode;
         // If carries info
         bool is_jump_set;
         size_t data_0;
@@ -49,6 +50,9 @@
         size_t offset_1;
         size_t offset_2;
         size_t offset_3;
+        // If carries str
+        char* str_0;
+        char* str_1;
         // If carries data
         XS_value* value_0;
         XS_value* value_1;
@@ -56,43 +60,45 @@
         XS_value* value_3;
     } XS_instruction;
 
-    EXPORT XS_instruction* instruction_new(opcode_t opcode);
-    // Push constant
-    EXPORT void opcode_push_const(store_t* store, XS_value* value);
+    EXPORT XS_instruction* XS_instruction_new(XS_opcode opcode);
+    // Variables
+    EXPORT void XS_opcode_load_name(XS_store* store, size_t env_offset, size_t var_offset, const char* name);
+    // Constants
+    EXPORT void XS_opcode_push_const(XS_store* store, XS_value* value);
     // Object operations
-    EXPORT void opcode_get_attribute(store_t* store);
-    EXPORT void opcode_make_object(store_t* store, size_t pair_count);
+    EXPORT void XS_opcode_get_attribute(XS_store* store);
+    EXPORT void XS_opcode_make_object(XS_store* store, size_t pair_count);
     // Other operations
-    EXPORT void opcode_pop_top(store_t* store);
-    EXPORT void opcode_call(store_t* store, size_t argc);
+    EXPORT void XS_opcode_pop_top(XS_store* store);
+    EXPORT void XS_opcode_call(XS_store* store, size_t argc);
     // Binary operations
-    EXPORT void opcode_binary_mul(store_t* store);
-    EXPORT void opcode_binary_div(store_t* store);
-    EXPORT void opcode_binary_mod(store_t* store);
-    EXPORT void opcode_binary_add(store_t* store);
-    EXPORT void opcode_binary_sub(store_t* store);
-    EXPORT void opcode_binary_lshift(store_t* store);
-    EXPORT void opcode_binary_rshift(store_t* store);
-    EXPORT void opcode_compare_less(store_t* store);
-    EXPORT void opcode_compare_less_equal(store_t* store);
-    EXPORT void opcode_compare_greater(store_t* store);
-    EXPORT void opcode_compare_greater_equal(store_t* store);
-    EXPORT void opcode_compare_equal(store_t* store);
-    EXPORT void opcode_compare_not_equal(store_t* store);
-    EXPORT void opcode_binary_and(store_t* store);
-    EXPORT void opcode_binary_or(store_t* store);
-    EXPORT void opcode_binary_xor(store_t* store);
+    EXPORT void XS_opcode_binary_mul(XS_store* store);
+    EXPORT void XS_opcode_binary_div(XS_store* store);
+    EXPORT void XS_opcode_binary_mod(XS_store* store);
+    EXPORT void XS_opcode_binary_add(XS_store* store);
+    EXPORT void XS_opcode_binary_sub(XS_store* store);
+    EXPORT void XS_opcode_binary_lshift(XS_store* store);
+    EXPORT void XS_opcode_binary_rshift(XS_store* store);
+    EXPORT void XS_opcode_compare_less(XS_store* store);
+    EXPORT void XS_opcode_compare_less_equal(XS_store* store);
+    EXPORT void XS_opcode_compare_greater(XS_store* store);
+    EXPORT void XS_opcode_compare_greater_equal(XS_store* store);
+    EXPORT void XS_opcode_compare_equal(XS_store* store);
+    EXPORT void XS_opcode_compare_not_equal(XS_store* store);
+    EXPORT void XS_opcode_binary_and(XS_store* store);
+    EXPORT void XS_opcode_binary_or(XS_store* store);
+    EXPORT void XS_opcode_binary_xor(XS_store* store);
     // Jumps
-    EXPORT XS_instruction* opcode_jump_if_false_or_pop(store_t* store, size_t offset);
-    EXPORT XS_instruction* opcode_jump_if_true_or_pop(store_t* store, size_t offset);
-    EXPORT XS_instruction* opcode_JUMP_IF_NOT_ERROR_OR_POP(store_t* store, size_t offset);
-    EXPORT XS_instruction* opcode_pop_jump_if_false(store_t* store, size_t offset);
-    EXPORT XS_instruction* opcode_pop_jump_if_true(store_t* store, size_t offset);
-    EXPORT XS_instruction* opcode_jump_absolute(store_t* store, size_t offset);
-    EXPORT XS_instruction* opcode_jump_forward(store_t* store, size_t offset);
+    EXPORT XS_instruction* XS_opcode_jump_if_false_or_pop(XS_store* store, size_t offset);
+    EXPORT XS_instruction* XS_opcode_jump_if_true_or_pop(XS_store* store, size_t offset);
+    EXPORT XS_instruction* XS_opcode_jump_if_not_error_or_pop(XS_store* store, size_t offset);
+    EXPORT XS_instruction* XS_opcode_pop_jump_if_false(XS_store* store, size_t offset);
+    EXPORT XS_instruction* XS_opcode_pop_jump_if_true(XS_store* store, size_t offset);
+    EXPORT XS_instruction* XS_opcode_jump_absolute(XS_store* store, size_t offset);
+    EXPORT XS_instruction* XS_opcode_jump_forward(XS_store* store, size_t offset);
     // Util
-    EXPORT size_t opcode_get_current_jump_offset(store_t* store);
-    EXPORT void opcode_set_jump_offset(XS_instruction* instruction, size_t offset);
-    EXPORT void opcode_jump_to_current_offset(store_t* store, XS_instruction* instruction);
-    EXPORT size_t opcode_get_jump_offset(XS_instruction* instruction);
+    EXPORT size_t XS_opcode_get_current_jump_offset(XS_store* store);
+    EXPORT void XS_opcode_set_jump_offset(XS_instruction* instruction, size_t offset);
+    EXPORT void XS_opcode_jump_to_current_offset(XS_store* store, XS_instruction* instruction);
+    EXPORT size_t XS_opcode_get_jump_offset(XS_instruction* instruction);
 #endif

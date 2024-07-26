@@ -526,6 +526,8 @@ char* xirius_read_file(const char* path) {
         AST_BIT_AND,
         AST_BIT_OR,
         AST_BIT_XOR,
+        AST_LOG_AND,
+        AST_LOG_OR,
         // 
         AST_EXPR_STMNT
     } ast_type_t;
@@ -746,9 +748,183 @@ char* xirius_read_file(const char* path) {
     }
 
     static
+    ast_t* parser_shift(parser_t* parser) {
+        ast_t* node = parser_add(parser);
+        if (node == NULL) {
+            return NULL;
+        }
+
+        while (CHECKVALUE("<<") || CHECKVALUE(">>")) {
+            ast_type_t ast_type;
+            char* op = xirius_str_new(parser->lookahead->value);
+
+            if (CHECKVALUE("<<")) {
+                ast_type = AST_BIN_LSHFT;
+                ACCPETVALUE("+");
+            } else if (CHECKVALUE(">>")) {
+                ast_type = AST_BIN_RSHFT;
+                ACCPETVALUE("-");
+            }
+
+            ast_t* right = parser_add(parser);
+            if (right == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a number!", NULL);
+
+           node = ast_binary_expression(
+                ast_type, 
+                op, node, right, 
+                parser->previous->position
+            );
+        }
+
+        return node;
+    }
+
+    static
+    ast_t* parser_relation(parser_t* parser) {
+        ast_t* node = parser_shift(parser);
+        if (node == NULL) {
+            return NULL;
+        }
+
+        while (CHECKVALUE("<") || CHECKVALUE("<=") || CHECKVALUE(">") || CHECKVALUE(">=")) {
+            ast_type_t ast_type;
+            char* op = xirius_str_new(parser->lookahead->value);
+
+            if (CHECKVALUE("<")) {
+                ast_type = AST_CMP_LT;
+                ACCPETVALUE("<");
+            } else if (CHECKVALUE("<=")) {
+                ast_type = AST_CMP_LTE;
+                ACCPETVALUE("<=");
+            } else if (CHECKVALUE(">")) {
+                ast_type = AST_CMP_GT;
+                ACCPETVALUE(">");
+            } else if (CHECKVALUE(">=")) {
+                ast_type = AST_CMP_GTE;
+                ACCPETVALUE(">=");
+            }
+
+            ast_t* right = parser_shift(parser);
+            if (right == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a number!", NULL);
+
+           node = ast_binary_expression(
+                ast_type, 
+                op, node, right, 
+                parser->previous->position
+            );
+        }
+
+        return node;
+    }
+
+    static
+    ast_t* parser_equality(parser_t* parser) {
+        ast_t* node = parser_relation(parser);
+        if (node == NULL) {
+            return NULL;
+        }
+
+        while (CHECKVALUE("==") || CHECKVALUE("!=")) {
+            ast_type_t ast_type;
+            char* op = xirius_str_new(parser->lookahead->value);
+
+            if (CHECKVALUE("==")) {
+                ast_type = AST_CMP_EQ;
+                ACCPETVALUE("==");
+            } else if (CHECKVALUE("!=")) {
+                ast_type = AST_CMP_NEQ;
+                ACCPETVALUE("!=");
+            }
+
+            ast_t* right = parser_relation(parser);
+            if (right == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a number!", NULL);
+
+           node = ast_binary_expression(
+                ast_type, 
+                op, node, right, 
+                parser->previous->position
+            );
+        }
+
+        return node;
+    }
+
+    static
+    ast_t* parser_bitwise(parser_t* parser) {
+        ast_t* node = parser_equality(parser);
+        if (node == NULL) {
+            return NULL;
+        }
+
+        while (CHECKVALUE("&") || CHECKVALUE("|") || CHECKVALUE("^")) {
+            char* op = xirius_str_new(parser->lookahead->value);
+            ast_type_t ast_type;
+
+            if (CHECKVALUE("&")) {
+                ast_type = AST_BIT_AND;
+                ACCPETVALUE("&");
+            } else if (CHECKVALUE("|")) {
+                ast_type = AST_BIT_OR;
+                ACCPETVALUE("|");
+            } else if (CHECKVALUE("^")) {
+                ast_type = AST_BIT_XOR;
+                ACCPETVALUE("^");
+            }
+
+            ast_t* right = parser_equality(parser);
+            if (right == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a number!", NULL);
+
+           node = ast_binary_expression(
+                ast_type, 
+                op, node, right, 
+                parser->previous->position
+            );
+        }
+
+        return node;
+    }
+
+    static
+    ast_t* parser_logical(parser_t* parser) {
+        ast_t* node = parser_bitwise(parser);
+        if (node == NULL) {
+            return NULL;
+        }
+
+        while (CHECKVALUE("&&") || CHECKVALUE("||")) {
+            char* op = xirius_str_new(parser->lookahead->value);
+            ast_type_t ast_type;
+
+            if (CHECKVALUE("&&")) {
+                ast_type = AST_LOG_AND;
+                ACCPETVALUE("&&");
+            } else if (CHECKVALUE("||")) {
+                ast_type = AST_LOG_OR;
+                ACCPETVALUE("||");
+            }
+
+            ast_t* right = parser_bitwise(parser);
+            if (right == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a number!", NULL);
+
+           node = ast_binary_expression(
+                ast_type, 
+                op, node, right, 
+                parser->previous->position
+            );
+        }
+
+        return node;
+    }
+
+    static
     ast_t* parser_statement(parser_t* parser) {
         position_t* start = parser->lookahead->position, *ended = NULL;
-        ast_t* node = parser_add(parser);
+        ast_t* node = parser_logical(parser);
         if (node == NULL) {
             return NULL;
         }
@@ -770,20 +946,235 @@ char* xirius_read_file(const char* path) {
     }
 #endif
 
+#include "../src/xirius.h"
 #ifndef GENERATOR_H
 #define GENERATOR_H
-    
+    // No optimization for now
+    typedef struct xirius_generator_struct {
+        parser_t* parser;
+        XS_context* context;
+        XS_store* store;
+        size_t env_offset;
+        size_t env_locals;
+    } generator_t;
+
+    static
+    generator_t* generator_new(const char* path, const char* data) {
+        generator_t* generator = malloc(sizeof(generator_t));
+        if (generator == NULL)
+            ERROR("failed to allocate memory for generator!!!");
+
+        generator->parser = parser_new(path, data);
+        generator->context = XS_context_new(XS_runtime_new());
+        generator->store = XS_store_new();
+        generator->env_offset = 0;
+        generator->env_locals = 0;
+        return generator;
+    }
+
+    static
+    void generator_expression(generator_t* generator, ast_t* node) {
+        switch (node->type) {
+            case AST_INT: {
+                XS_opcode_push_const(generator->store, XS_value_new_int(generator->context, strtoll(node->str_0, NULL, 10)));
+                break;
+            }
+            case AST_FLT: {
+                XS_opcode_push_const(generator->store, XS_value_new_flt(generator->context, strtod(node->str_0, NULL)));
+                break;
+            }
+            case AST_STR: {
+                XS_opcode_push_const(generator->store, XS_value_new_str(generator->context, node->str_0));
+                break;
+            }
+            case AST_BOOL: {
+                XS_opcode_push_const(generator->store, XS_value_new_bit(generator->context, xirius_str_equals(node->str_0, "true")));
+                break;
+            }
+            case AST_NULL: {
+                XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
+                break;
+            }
+            case AST_BIN_MUL: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_mul(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIN_DIV: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_div(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIN_MOD: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_mod(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIN_ADD: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_add(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIN_SUB: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_sub(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIN_LSHFT: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_lshift(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIN_RSHFT: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_rshift(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_CMP_LT: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_compare_less(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_CMP_LTE: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_compare_less_equal(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_CMP_GT: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_compare_greater(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_CMP_GTE: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_compare_greater_equal(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_CMP_EQ: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_compare_equal(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_CMP_NEQ: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_compare_not_equal(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIT_AND: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_and(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIT_OR: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_or(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_BIT_XOR: {
+                generator_expression(generator, node->data_0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_binary_xor(generator->store);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_LOG_AND: {
+                generator_expression(generator, node->data_0);
+                XS_instruction* j0 =
+                XS_opcode_jump_if_false_or_pop(generator->store, 0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_jump_to_current_offset(generator->store, j0);
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_LOG_OR: {
+                generator_expression(generator, node->data_0);
+                XS_instruction* j0 =
+                XS_opcode_jump_if_true_or_pop(generator->store, 0);
+                generator_expression(generator, node->data_1);
+                XS_opcode_jump_to_current_offset(generator->store, j0);
+                free(node->position);
+                free(node);
+                break;
+            }
+            default: 
+                ERROR_F(generator->parser->lexer->path, node->position, "[NOT IMPLEMENTED]", NULL);
+        }
+    }
+
+    static
+    void generator_statement(generator_t* generator, ast_t* node) {
+        switch (node->type) {
+            case AST_EXPR_STMNT: {
+                generator_expression(generator, node->data_0);
+                XS_opcode_pop_top(generator->store);
+                break;
+            }
+            default: 
+                ERROR_F(generator->parser->lexer->path, node->position, "[NOT IMPLEMENTED]", NULL);
+        }
+    }
+
+    static
+    XS_store* generator_generate(generator_t* generator) {
+        generator_statement(generator, parser_parse(generator->parser));
+        return generator->store;
+    }
 #endif
 
 int main(int argc, char** argv) {
-    
     char* file = "./example.xs";
     char* data = xirius_read_file(file);
 
-    parser_t* parser = parser_new(file, data);
-    parser_parse(parser);
-    printf("PARSED!!!\n");
-    parser_free(parser);
-
+    generator_t* generator = generator_new(file, data);
+    XS_store* store = generator_generate(generator);
+    XS_runtime_execute(generator->context, store);
+    printf("DONE!\n");
     return 0;
 }

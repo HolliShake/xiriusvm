@@ -5,7 +5,7 @@
 
 #ifndef XSVALUE_H
 #define XSVALUE_H
-    typedef enum xirius_value_type {
+    typedef enum xirius_value_type_enum {
         XS_INT,
         XS_FLT,
         XS_STR,

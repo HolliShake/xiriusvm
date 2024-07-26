@@ -1,6 +1,6 @@
 #include "object.h"
 
- #ifndef XSVALUE_H // src/xsvalue.h
+ #ifndef XSVALUE_H // src/value.h
     /*virtual*/ typedef struct xirius_value_struct XS_value;
     /*virtual*/ extern const char* XS_value_to_const_string(XS_value* value);
     /*virtual*/ extern bool XS_value_equals(XS_value* a, XS_value* b);
