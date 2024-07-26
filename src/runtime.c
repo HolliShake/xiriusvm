@@ -46,17 +46,17 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                     XS_value* value = object_get(obj->value.obj_value, ind);
                     PUSH(
                         ( value == NULL ) 
-                        ? XS_value_new_nil(context) 
+                        ? XS_NIL(context) 
                         : value
                     );
                     break;
                 } else {
-                    PUSH(XS_value_new_err(context, "TypeError: 'TypeName' object is not subscriptable"));
+                    PUSH(XS_ERR(context, "TypeError: 'TypeName' object is not subscriptable"));
                 }
                 break;
             }
             case MAKE_OBJECT: {
-                XS_value* obj = XS_value_new_obj(context);
+                XS_value* obj = XS_OBJ(context);
                 for (size_t j = 0; j < instruction->data_0; j++) {
                     XS_value* val = POP();
                     XS_value* key = POP();
@@ -78,7 +78,7 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                     }
                     /**** CHECK IF SIGNITURE MATCHED ****/ 
                     if (fn->argc != instruction->data_0) {
-                        XS_value* error = XS_value_new_err(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
+                        XS_value* error = XS_ERR(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
                         PUSH(error);
                         break;
                     }
