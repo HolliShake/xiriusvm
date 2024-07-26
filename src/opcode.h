@@ -8,6 +8,8 @@
         LOAD_NAME,
         PUSH_CONST,
         // Object operations
+        SET_GLOBAL_PROPERTY,
+        GET_GLOBAL_PROPERTY,
         GET_ATTRIBUTE,
         MAKE_OBJECT,
         // Other operations
@@ -61,11 +63,14 @@
     } XS_instruction;
 
     EXPORT XS_instruction* XS_instruction_new(XS_opcode opcode);
+    EXPORT void XS_instruction_free(XS_instruction* instruction);
     // Variables
     EXPORT void XS_opcode_load_name(XS_store* store, size_t env_offset, size_t var_offset, const char* name);
     // Constants
     EXPORT void XS_opcode_push_const(XS_store* store, XS_value* value);
     // Object operations
+    EXPORT void XS_opcode_set_global_property(XS_store* store, const char* name);
+    EXPORT void XS_opcode_get_global_property(XS_store* store, const char* name);
     EXPORT void XS_opcode_get_attribute(XS_store* store);
     EXPORT void XS_opcode_make_object(XS_store* store, size_t pair_count);
     // Other operations

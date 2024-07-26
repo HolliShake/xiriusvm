@@ -20,11 +20,11 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
     XS_runtime* rt = XS_context_get_runtime(context);
 
     // Call stack
-    size_t   CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull, pointer = 0ull;
+    size_t/**/CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull, pointer = 0ull;
     XS_store* CALL_STACKF[MAX_STACK_SIZE];
     
     // Initialize call stack
-    CALL_STACKI[call_stack_base] = 0;
+    CALL_STACKI[call_stack_base] = 0ull;
     CALL_STACKF[call_stack_base] = store;
 
     size_t i = CALL_STACKI[call_stack_base];
@@ -34,11 +34,37 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
             break;
         }
         switch (instruction->opcode) {
-            // Push constant
+            // Variables
+            case LOAD_NAME: {
+                CALL_STACKF[pointer]->
+                XS_value* value = sot;
+                PUSH(
+                    ( value == NULL ) 
+                    ? XS_NIL(context) 
+                    : value
+                );
+                break;
+            }
+            // Constants
             case PUSH_CONST:
                 PUSH(instruction->value_0);
                 break;
             // Object operations
+            case SET_GLOBAL_PROPERTY: {
+                XS_value* value = PEEK();
+                object_set(context->global_object->value.obj_value, XS_STR(context, instruction->str_0), value);
+                break;
+            }
+            case GET_GLOBAL_PROPERTY: {
+                XS_value* value = 
+                object_get(context->global_object->value.obj_value, XS_STR(context, instruction->str_0));
+                PUSH(
+                    ( value == NULL ) 
+                    ? XS_NIL(context) 
+                    : value
+                );
+                break;
+            }
             case GET_ATTRIBUTE: {
                 XS_value* obj = POP();
                 XS_value* ind = POP();
@@ -332,7 +358,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
     for (;;) {
         XS_instruction* instruction = store->instructions[i++];
         if (instruction == NULL) break;
-        XS_free(instruction);
+        XS_instruction_free(instruction);
     }
 }
 

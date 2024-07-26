@@ -76,7 +76,6 @@
     EXPORT XS_value* XS_value_new_nil(XS_context* context);
     EXPORT XS_value* XS_value_new_err(XS_context* context, const char* message);
     EXPORT XS_value* XS_value_new_obj(XS_context* context);
-        EXPORT XS_value* XS_value_get_object_property_from_const_string(XS_value* object, const char* key);
         EXPORT XS_value* XS_value_get_object_property(XS_value* object, XS_value* key);
     
     // Cfunction type

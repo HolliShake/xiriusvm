@@ -54,22 +54,6 @@ EXPORT XS_value* object_get(object_t* object, XS_value* key) {
     return NULL;
 }
 
-#ifndef XSVALUE_H
-    /*virtual*/ extern int64_t hash_string(const char* str);
-#endif
-
-EXPORT XS_value* object_get_from_cstring(object_t* object, const char* key) {
-    size_t hash = hash_string(key) % object->capacity;
-    object_node_t* node = object->buckets[hash];
-    while (node != NULL) {
-        if (str__equals(XS_value_to_const_string(node->key), key)) {
-            return node->value;
-        }
-        node = node->next;
-    }
-    return NULL;
-}
-
 EXPORT void object_resize(object_t* object, size_t new_capacity) {
     object_node_t** new_buckets = XS_malloc(sizeof(object_node_t*) * new_capacity);
     assert_allocation(new_buckets);
@@ -124,4 +108,16 @@ EXPORT char* object_to_string(object_t* object) {
         }
     }
     return str__format("{ %s }", str);
+}
+
+EXPORT bool object_has_attr(object_t* object, XS_value* key) {
+    size_t hash = XS_value_hash(key) % object->capacity;
+    object_node_t* node = object->buckets[hash];
+    while (node != NULL) {
+        if (XS_value_equals(node->key, key)) {
+            return true;
+        }
+        node = node->next;
+    }
+    return false;
 }

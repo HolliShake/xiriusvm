@@ -23,6 +23,16 @@ EXPORT XS_instruction* XS_instruction_new(XS_opcode opcode) {
     return instruction;
 }
 
+EXPORT void XS_instruction_free(XS_instruction* instruction) {
+    // If carries str
+    if (instruction->str_0 != NULL)
+        XS_free(instruction->str_0);
+    if (instruction->str_1 != NULL)
+        XS_free(instruction->str_1);
+    // Free instruction
+    XS_free(instruction);
+}
+
 // Variables
 EXPORT void XS_opcode_load_name(XS_store* store, size_t env_offset, size_t var_offset, const char* name) {
     XS_instruction* instruction = XS_instruction_new(LOAD_NAME);
@@ -43,6 +53,20 @@ EXPORT void XS_opcode_push_const(XS_store* store, XS_value* value) {
 }
 
 // Object operations
+EXPORT void XS_opcode_set_global_property(XS_store* store, const char* name) {
+    XS_instruction* instruction = XS_instruction_new(SET_GLOBAL_PROPERTY);
+        instruction->str_0 = str__new(name);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_get_global_property(XS_store* store, const char* name) {
+    XS_instruction* instruction = XS_instruction_new(GET_GLOBAL_PROPERTY);
+        instruction->str_0 = str__new(name);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
 EXPORT void XS_opcode_get_attribute(XS_store* store) {
     XS_instruction* instruction = XS_instruction_new(GET_ATTRIBUTE);
     // Push to store

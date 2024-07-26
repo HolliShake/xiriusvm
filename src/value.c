@@ -59,10 +59,6 @@ EXPORT XS_value *XS_value_new_obj(XS_context* context) {
     new_value->value.obj_value = object_new();
     return new_value;
 }
-    EXPORT XS_value* XS_value_get_object_property_from_const_string(XS_value* object, const char* key) {
-        return object_get_from_cstring(object->value.obj_value, key);
-    }
-
     EXPORT XS_value* XS_value_get_object_property(XS_value* object, XS_value* key) {
         return object_get(object->value.obj_value, key);
     }

@@ -28,5 +28,8 @@ char* str__format(const char* format, ...) {
 }
 
 bool str__equals(const char* str0, const char* str1) {
+    if (str0 == NULL || str1 == NULL) {
+        return false;
+    }
     return strcmp(str0, str1) == 0;
 }
