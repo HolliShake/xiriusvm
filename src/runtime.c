@@ -15,80 +15,6 @@ EXPORT XS_runtime* XS_runtime_new() {
     return runtime;
 }
 
-
-#define OPERATION_LT(a, b) {\
-        XS_value* c = NULL;\
-        if (XS_IS_INT(a) && XS_IS_INT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_INT(a) < XS_GET_INT(b)));\
-        else if (XS_IS_FLT(a) && XS_IS_FLT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) < XS_GET_FLT(b)));\
-        else if (XS_IS_INT(a) && XS_IS_FLT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_INT(a) < XS_GET_FLT(b)));\
-        else if (XS_IS_FLT(a) && XS_IS_INT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) < XS_GET_INT(b)));\
-        else\
-            c = NULL;\
-        PUSH(c);\
-    }\
-
-#define OPERATION_LTE(a, b) {\
-        XS_value* c = NULL;\
-        if (XS_IS_INT(a) && XS_IS_INT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_INT(a) <= XS_GET_INT(b)));\
-        else if (XS_IS_FLT(a) && XS_IS_FLT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) <= XS_GET_FLT(b)));\
-        else if (XS_IS_INT(a) && XS_IS_FLT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_INT(a) <= XS_GET_FLT(b)));\
-        else if (XS_IS_FLT(a) && XS_IS_INT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) <= XS_GET_INT(b)));\
-        else\
-            c = NULL;\
-        PUSH(c);\
-    }\
-
-#define OPERATION_GT(a, b) {\
-        XS_value* c = NULL;\
-        if (XS_IS_INT(a) && XS_IS_INT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_INT(a) > XS_GET_INT(b)));\
-        else if (XS_IS_FLT(a) && XS_IS_FLT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) > XS_GET_FLT(b)));\
-        else if (XS_IS_INT(a) && XS_IS_FLT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_INT(a) > XS_GET_FLT(b)));\
-        else if (XS_IS_FLT(a) && XS_IS_INT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) > XS_GET_INT(b)));\
-        else\
-            c = NULL;\
-        PUSH(c);\
-    }\
-
-#define OPERATION_GTE(a, b) {\
-        XS_value* c = NULL;\
-        if (XS_IS_INT(a) && XS_IS_INT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_INT(a) >= XS_GET_INT(b)));\
-        else if (XS_IS_FLT(a) && XS_IS_FLT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) >= XS_GET_FLT(b)));\
-        else if (XS_IS_INT(a) && XS_IS_FLT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_INT(a) >= XS_GET_FLT(b)));\
-        else if (XS_IS_FLT(a) && XS_IS_INT(b))\
-            c = XS_BIT(context, (const bool) (XS_GET_FLT(a) >= XS_GET_INT(b)));\
-        else\
-            c = NULL;\
-        PUSH(c);\
-    }\
-
-/**/// Call native function operation
-#define CALL_OR_ERROR(fn, required_argc)\
-    if (fn->argc != required_argc) {\
-        XS_value* error = XS_value_new_err(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, required_argc, fn->argc));\
-        PUSH(error);\
-        break;\
-    }\
-
-#define CALL_NATIVE(fn, argv, argc)\
-    XS_value* ret = ((cfunction_t) fn->value.obj_value)(context, argv, argc);\
-    PUSH(ret);\
-
-
 /****************************/
 EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
     XS_runtime* rt = XS_context_get_runtime(context);
@@ -151,10 +77,14 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                         argv[j] = POP();
                     }
                     /**** CHECK IF SIGNITURE MATCHED ****/ 
-                    CALL_OR_ERROR(fn, instruction->data_0);
-
-                    /**** CALL FUNCTION *****************/ 
-                    CALL_NATIVE(fn, argv, instruction->data_0);
+                    if (fn->argc != instruction->data_0) {
+                        XS_value* error = XS_value_new_err(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
+                        PUSH(error);
+                        break;
+                    }
+                    /**** CALL FUNCTION *****************/
+                    XS_value* ret = ((cfunction_t) fn->value.obj_value)(context, argv, instruction->data_0);
+                    PUSH(ret);
                 }
                 break;
             }
@@ -206,28 +136,135 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                 PUSH(c);
                 break;
             }
+            case BINARY_LSHIFT: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_INT(context, XS_GET_INT(a) << XS_GET_INT(b));
+                else
+                    c = NULL;
+                PUSH(c);
+                break;
+            }
+            case BINARY_RSHIFT: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_INT(context, XS_GET_INT(a) >> XS_GET_INT(b));
+                else
+                    c = NULL;
+                PUSH(c);
+                break;
+            }
             case COMPARE_LESS: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                OPERATION_LT(a, b);
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_BIT(context, XS_GET_INT(a) < XS_GET_INT(b));
+                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
+                    c = XS_BIT(context, XS_GET_FLT(a) < XS_GET_FLT(b));
+                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
+                    c = XS_BIT(context, XS_GET_NUM(a) < XS_GET_NUM(b));
+                else
+                    c = NULL;
+                PUSH(c);
                 break;
             }
             case COMPARE_LESS_EQUAL: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                OPERATION_LTE(a, b);
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_BIT(context, XS_GET_INT(a) <= XS_GET_INT(b));
+                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
+                    c = XS_BIT(context, XS_GET_FLT(a) <= XS_GET_FLT(b));
+                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
+                    c = XS_BIT(context, XS_GET_NUM(a) <= XS_GET_NUM(b));
+                else
+                    c = NULL;
+                PUSH(c);
                 break;
             }
             case COMPARE_GREATER: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                OPERATION_GT(a, b);
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_BIT(context, XS_GET_INT(a) > XS_GET_INT(b));
+                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
+                    c = XS_BIT(context, XS_GET_FLT(a) > XS_GET_FLT(b));
+                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
+                    c = XS_BIT(context, XS_GET_NUM(a) > XS_GET_NUM(b));
+                else
+                    c = NULL;
+                PUSH(c);
                 break;
             }
             case COMPARE_GREATER_EQUAL: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                OPERATION_GTE(a, b);
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_BIT(context, XS_GET_INT(a) >= XS_GET_INT(b));
+                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
+                    c = XS_BIT(context, XS_GET_FLT(a) >= XS_GET_FLT(b));
+                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
+                    c = XS_BIT(context, XS_GET_NUM(a) >= XS_GET_NUM(b));
+                else
+                    c = NULL;
+                PUSH(c);
+                break;
+            }
+            case COMPARE_EQUAL: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                c = XS_BIT(context, (const bool) XS_value_equals(a, b));
+                PUSH(c);
+                break;
+            }
+            case COMPARE_NOT_EQUAL: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                c = XS_BIT(context, (const bool) !XS_value_equals(a, b));
+                PUSH(c);
+                break;
+            }
+            case BINARY_AND: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_BIT(context, XS_GET_INT(a) && XS_GET_INT(b));
+                else
+                    c = NULL;
+                PUSH(c);
+                break;
+            }
+            case BINARY_OR: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_BIT(context, XS_GET_INT(a) || XS_GET_INT(b));
+                else
+                    c = NULL;
+                PUSH(c);
+                break;
+            }
+            case BINARY_XOR: {
+                XS_value* b = POP();
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a) && XS_IS_INT(b))
+                    c = XS_BIT(context, XS_GET_INT(a) ^ XS_GET_INT(b));
+                else
+                    c = NULL;
+                PUSH(c);
                 break;
             }
             // Jumps
@@ -249,12 +286,13 @@ EXPORT void XS_runtime_execute(XS_context* context, store_t* store) {
                 POP();
                 break;
             }
-            case JUMP_IF_NOT_ERROR: {
+            case JUMP_IF_NOT_ERROR_OR_POP: {
                 XS_value* top = PEEK();
                 if (!XS_value_is_err(top)) {
                     i = opcode_get_jump_offset(instruction);
                     break;
                 }
+                POP();
                 break;
             }
             case POP_JUMP_IF_FALSE: {

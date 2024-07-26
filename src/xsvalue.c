@@ -79,56 +79,56 @@ EXPORT XS_value* XS_value_new_cfunction(cfunction_t cfunction, bool async, const
 }
 
 // Type Checker
-EXPORT bool XS_value_is_int(XS_value *value) {
-    return (value->type == XS_INT);
+EXPORT bool XS_value_is_int(XS_value* value) {
+    return XS_IS_INT(value);
 }
 
-EXPORT bool XS_value_is_flt(XS_value *value) {
-    return (value->type == XS_FLT);
+EXPORT bool XS_value_is_flt(XS_value* value) {
+    return XS_IS_FLT(value);
 }
 
-EXPORT bool XS_value_is_num(XS_value *value) {
-    return XS_value_is_int(value) || XS_value_is_flt(value);
+EXPORT bool XS_value_is_num(XS_value* value) {
+    return XS_IS_NUM(value);
 }
 
-EXPORT bool XS_value_is_str(XS_value *value) {
-    return (value->type == XS_STR);
+EXPORT bool XS_value_is_str(XS_value* value) {
+    return XS_IS_STR(value);
 }
 
-EXPORT bool XS_value_is_bit(XS_value *value) {
-    return (value->type == XS_BIT);
+EXPORT bool XS_value_is_bit(XS_value* value) {
+    return XS_IS_BIT(value);
 }
 
-EXPORT bool XS_value_is_nil(XS_value *value) {
-    return (value->type == XS_NIL);
+EXPORT bool XS_value_is_nil(XS_value* value) {
+    return XS_IS_NIL(value);
 }
 
 EXPORT bool XS_value_is_err(XS_value* value) {
-    return value->type == XS_ERR;
+    return XS_IS_ERR(value);
 }
 
 EXPORT bool XS_value_is_obj(XS_value* value) {
-    return value->type == XS_OBJ;
+    return XS_IS_OBJ(value);
 }
 
 EXPORT bool XS_value_is_native_function(XS_value* value) {
-    return value->type == XS_NATIVE_FUNCTION;
+    return XS_IS_NATIVE_FUNCTION(value);
 }
 
 EXPORT bool XS_value_is_define_function(XS_value* value) {
-    return value->type == XS_DEFINE_FUNCTION;
+    return XS_IS_DEFINE_FUNCTION(value);
 }
 
 EXPORT bool XS_value_is_satisfiable(XS_value* value) {
-    if (XS_value_is_int(value))
-        return (value->value.int_value != 0);
-    else if (XS_value_is_flt(value))
-        return (value->value.flt_value != 0.0);
+    if (XS_IS_INT(value))
+        return (XS_GET_INT(value) != 0);
+    else if (XS_IS_FLT(value))
+        return (XS_GET_FLT(value) != 0.0);
     else if (XS_value_is_str(value))
-        return (strlen(value->value.str_value) > 0);
-    else if (XS_value_is_bit(value))
-        return (value->value.bit_value == true);
-    else if (XS_value_is_nil(value))
+        return (strlen(XS_GET_STR(value)) > 0);
+    else if (XS_IS_BIT(value))
+        return (XS_GET_BIT(value) == true);
+    else if (XS_IS_NIL(value))
         return false;
     else
         printf("%s::%s[%d]:warning: [Not Implemented]!!!\n", __FILE__, __func__, __LINE__);
@@ -166,15 +166,15 @@ int64_t hash_string(const char* str) {
 }
 
 EXPORT long long int XS_value_hash(XS_value* value) {
-    if (XS_value_is_int(value))
-        return (long long int) value->value.int_value;
-    else if (XS_value_is_flt(value))
-        return (long long int) hash_double(value->value.flt_value);
-    else if (XS_value_is_str(value))
-        return (long long int) hash_string((const char*) value->value.str_value);
-    else if (XS_value_is_bit(value))
-        return (unsigned long long int) value->value.bit_value;
-    else if (XS_value_is_nil(value))
+    if (XS_IS_INT(value))
+        return XS_GET_INT(value);
+    else if (XS_IS_FLT(value))
+        return (long long int) hash_double(XS_GET_FLT(value));
+    else if (XS_IS_STR(value))
+        return (long long int) hash_string(XS_GET_STR(value));
+    else if (XS_IS_BIT(value))
+        return XS_GET_BIT(value);
+    else if (XS_IS_NIL(value))
         return 0;
     else
         printf("%s::%s[%d]:warning: [Not Implemented]!!!\n", __FILE__, __func__, __LINE__);
@@ -182,19 +182,17 @@ EXPORT long long int XS_value_hash(XS_value* value) {
 }
 
 EXPORT bool XS_value_equals(XS_value* a, XS_value* b) {
-    if (XS_value_is_int(a) && XS_value_is_int(b))
-        return (a->value.int_value == b->value.int_value);
-    else if (XS_value_is_flt(a) && XS_value_is_flt(b))
-        return (a->value.flt_value == b->value.flt_value);
-    else if (XS_value_is_int(a) && XS_value_is_flt(b))
-        return (a->value.int_value == b->value.flt_value);
-    else if (XS_value_is_flt(a) && XS_value_is_int(b))
-        return (a->value.flt_value == b->value.int_value);
-    else if (XS_value_is_str(a) && XS_value_is_str(b))
-        return str__equals((const char*) a->value.str_value, (const char*) b->value.str_value);
-    else if (XS_value_is_bit(a) && XS_value_is_bit(b))
-        return (a->value.bit_value == b->value.bit_value);
-    else if (XS_value_is_nil(a) && XS_value_is_nil(b))
+    if (XS_IS_INT(a) && XS_IS_INT(b))
+        return (XS_GET_INT(a) == XS_GET_INT(b));
+    else if (XS_IS_FLT(a) && XS_IS_FLT(b))
+        return (XS_GET_FLT(a) == XS_GET_FLT(b));
+    else if (XS_IS_NUM(a) && XS_IS_NUM(b))
+        return (XS_GET_NUM(a) == XS_GET_NUM(b));
+    else if (XS_IS_STR(a) && XS_IS_STR(b))
+        return str__equals(XS_GET_STR(a), XS_GET_STR(b));
+    else if (XS_IS_BIT(a) && XS_IS_BIT(b))
+        return (XS_GET_BIT(a) == XS_GET_BIT(b));
+    else if (XS_IS_NIL(a) && XS_IS_NIL(b))
         return true;
     else
         printf("%s::%s[%d]:warning: [Not Implemented]!!!\n", __FILE__, __func__, __LINE__);

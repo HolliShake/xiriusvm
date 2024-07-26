@@ -51,12 +51,12 @@
     #define XS_ERR(context, m) XS_value_new_err(context, (const char* ) (m))
     #define XS_OBJ(context) XS_value_new_obj(context)
 
-    #define XS_GET_INT(_value) _value->value.int_value
-    #define XS_GET_FLT(_value) _value->value.flt_value
+    #define XS_GET_INT(_value) (_value->value.int_value)
+    #define XS_GET_FLT(_value) (_value->value.flt_value)
     #define XS_GET_NUM(_value) (XS_IS_INT(_value) ? XS_GET_INT(_value) : XS_GET_FLT(_value))
-    #define XS_GET_STR(_value) _value->value.str_value
-    #define XS_GET_BIT(_value) _value->value.bit_value
-    #define XS_GET_OBJ(_value) _value->value.obj_value
+    #define XS_GET_STR(_value) (_value->value.str_value)
+    #define XS_GET_BIT(_value) (_value->value.bit_value)
+    #define XS_GET_OBJ(_value) (_value->value.obj_value)
 
     #define XS_IS_INT(_value) (_value->type == XS_INT)
     #define XS_IS_FLT(_value) (_value->type == XS_FLT)

@@ -32,7 +32,7 @@
         // Jumps
         JUMP_IF_FALSE_OR_POP,
         JUMP_IF_TRUE_OR_POP,
-        JUMP_IF_NOT_ERROR,
+        JUMP_IF_NOT_ERROR_OR_POP,
         POP_JUMP_IF_FALSE,
         POP_JUMP_IF_TRUE,
         JUMP_ABSOLUTE,
@@ -85,7 +85,7 @@
     // Jumps
     EXPORT XS_instruction* opcode_jump_if_false_or_pop(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_jump_if_true_or_pop(store_t* store, size_t offset);
-    EXPORT XS_instruction* opcode_jump_if_not_error(store_t* store, size_t offset);
+    EXPORT XS_instruction* opcode_JUMP_IF_NOT_ERROR_OR_POP(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_pop_jump_if_false(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_pop_jump_if_true(store_t* store, size_t offset);
     EXPORT XS_instruction* opcode_jump_absolute(store_t* store, size_t offset);
