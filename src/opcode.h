@@ -32,6 +32,8 @@
         BINARY_AND,
         BINARY_OR,
         BINARY_XOR,
+        // Control
+        RETURN,
         // Jumps
         JUMP_IF_FALSE_OR_POP,
         JUMP_IF_TRUE_OR_POP,
@@ -93,6 +95,8 @@
     EXPORT void XS_opcode_binary_and(XS_store* store);
     EXPORT void XS_opcode_binary_or(XS_store* store);
     EXPORT void XS_opcode_binary_xor(XS_store* store);
+    // Control
+    EXPORT void XS_opcode_return(XS_store* store);
     // Jumps
     EXPORT XS_instruction* XS_opcode_jump_if_false_or_pop(XS_store* store, size_t offset);
     EXPORT XS_instruction* XS_opcode_jump_if_true_or_pop(XS_store* store, size_t offset);

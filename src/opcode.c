@@ -191,6 +191,13 @@ EXPORT void XS_opcode_binary_xor(XS_store* store) {
     XS_store_push(store, instruction);
 }
 
+// Control
+EXPORT void XS_opcode_return(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(RETURN);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
 // Jumps
 EXPORT XS_instruction* XS_opcode_jump_if_false_or_pop(XS_store* store, size_t offset) {
     XS_instruction* instruction = XS_instruction_new(JUMP_IF_FALSE_OR_POP);

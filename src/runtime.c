@@ -20,7 +20,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
     XS_runtime* rt = XS_context_get_runtime(context);
 
     // Call stack
-    size_t/**/CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull, pointer = 0ull;
+    size_t/**/CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull;
     XS_store* CALL_STACKF[MAX_STACK_SIZE];
     
     // Initialize call stack
@@ -29,17 +29,17 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
 
     size_t i = CALL_STACKI[call_stack_base];
     for (;;) {
-        XS_instruction* instruction = CALL_STACKF[pointer]->instructions[i++];
+        XS_instruction* instruction = CALL_STACKF[call_stack_base]->instructions[i++];
         if (instruction == NULL) {
             break;
         }
         switch (instruction->opcode) {
             // Variables
             case LOAD_NAME: {
-                CALL_STACKF[pointer]->
-                XS_value* value = sot;
+                // CALL_STACKF[pointer]->
+                XS_value* value = NULL;
                 PUSH(
-                    ( value == NULL ) 
+                    ( value == NULL )
                     ? XS_NIL(context) 
                     : value
                 );
@@ -135,11 +135,11 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 XS_value* a = POP();
                 XS_value* c = NULL;
                 if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_INT(context, XS_GET_INT(a) * XS_GET_INT(b));
+                    c = XS_INT(context, XS_GET_INT(a) + XS_GET_INT(b));
                 else if (XS_IS_FLT(a) && XS_IS_FLT(b))
-                    c = XS_FLT(context, XS_GET_FLT(a) * XS_GET_FLT(b));
+                    c = XS_FLT(context, XS_GET_FLT(a) + XS_GET_FLT(b));
                 else if (XS_IS_NUM(a) && XS_IS_NUM(b))
-                    c = XS_FLT(context, XS_GET_NUM(a) * XS_GET_NUM(b));
+                    c = XS_FLT(context, XS_GET_NUM(a) + XS_GET_NUM(b));
                 else if (XS_IS_STR(a) && XS_IS_STR(b))
                     c = XS_STR(context, str__add(XS_GET_STR(a), XS_GET_STR(b)));
                 else
@@ -291,6 +291,14 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 else
                     c = NULL;
                 PUSH(c);
+                break;
+            }
+            // Control
+            case RETURN: {
+                if (call_stack_base == 0) {
+                    return;
+                }
+                i = CALL_STACKI[--call_stack_base];
                 break;
             }
             // Jumps

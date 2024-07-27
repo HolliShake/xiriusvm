@@ -510,6 +510,7 @@ char* xirius_read_file(const char* path) {
         AST_NULL,
         AST_ARRAY,
         AST_MAP,
+        AST_CALL,
         AST_BIN_MUL,
         AST_BIN_DIV,
         AST_BIN_MOD,
@@ -529,7 +530,10 @@ char* xirius_read_file(const char* path) {
         AST_LOG_AND,
         AST_LOG_OR,
         // 
-        AST_EXPR_STMNT
+        AST_VAR,
+        AST_IF,
+        AST_EXPR_STMNT,
+        AST_PROGRAM
     } ast_type_t;
 
     typedef struct ast_struct ast_t;
@@ -540,9 +544,9 @@ char* xirius_read_file(const char* path) {
         char* str_1;
         ast_t* data_0;
         ast_t* data_1;
-        void* data_2;
-        void** multi_0;
-        void** multi_1;
+        ast_t* data_2;
+        ast_t** multi_0;
+        ast_t** multi_1;
         // 
         position_t* position;
     } ast_t;
@@ -576,6 +580,14 @@ char* xirius_read_file(const char* path) {
     }
 
     static
+    ast_t* ast_call_expression(ast_t* callee, ast_t** args, position_t* pos) {
+        ast_t* ast = ast_init(AST_CALL, pos);
+        ast->data_0 = callee;
+        ast->multi_0 = args;
+        return ast;
+    }
+
+    static
     ast_t* ast_binary_expression(ast_type_t type, char* op, ast_t* lhs, ast_t* rhs, position_t* pos) {
         ast_t* ast = ast_init(type, pos);
         ast->str_0 = op;
@@ -585,11 +597,43 @@ char* xirius_read_file(const char* path) {
     }
 
     static
+    ast_t* ast_var_decl(ast_t** names, ast_t** values, position_t* pos) {
+        ast_t* ast = ast_init(AST_VAR, pos);
+        ast->multi_0 = names;
+        ast->multi_1 = values;
+        return ast;
+    }
+
+    static
+    ast_t* ast_if_statement(ast_t* condition, ast_t* thenv, ast_t* elsev, position_t* pos) {
+        ast_t* ast = ast_init(AST_IF, pos);
+        ast->data_0 = condition;
+        ast->data_1 = thenv;
+        ast->data_2 = elsev;
+        return ast;
+    }
+
+    static
     ast_t* ast_expr_stmnt(ast_t* expr, position_t* pos) {
         ast_t* ast = ast_init(AST_EXPR_STMNT, pos);
         ast->data_0 = expr;
         return ast;
     }
+
+    static
+    ast_t* ast_program(ast_t** statements, position_t* pos) {
+        ast_t* ast = ast_init(AST_PROGRAM, pos);
+        ast->multi_0 = statements;
+        return ast;
+    }
+
+    #define INIT_ARRAY(label) ast_t** label = malloc(sizeof(ast_t*)); size_t label##_size = 0; label[0] = NULL;
+    #define PUSH_ARRAY(label, value) {\
+        label[label##_size++] = value;\
+        label = realloc(label, sizeof(ast_t*) * (label##_size + 1));\
+        label[label##_size] = NULL;\
+    }\
+
 #endif
 
 #ifndef PARSER_H
@@ -650,11 +694,7 @@ char* xirius_read_file(const char* path) {
 
     static
     ast_t* parser_terminal(parser_t* parser) {
-        if (CHECKTTYPE(TOKEN_IDN)) {
-            ast_t* t = ast_terminal(AST_IDN, parser->lookahead->value, parser->lookahead->position);
-            ACCPETTTYPE(TOKEN_IDN);
-            return t;
-        } else if (CHECKTTYPE(TOKEN_INT)) {
+        if (CHECKTTYPE(TOKEN_INT)) {
             ast_t* t = ast_terminal(AST_INT, parser->lookahead->value, parser->lookahead->position);
             ACCPETTTYPE(TOKEN_INT);
             return t;
@@ -674,13 +714,57 @@ char* xirius_read_file(const char* path) {
             ast_t* t = ast_terminal(AST_NULL, parser->lookahead->value, parser->lookahead->position);
             ACCPETTTYPE(TOKEN_IDN);
             return t;
+        } else if (CHECKTTYPE(TOKEN_IDN)) {
+            ast_t* t = ast_terminal(AST_IDN, parser->lookahead->value, parser->lookahead->position);
+            ACCPETTTYPE(TOKEN_IDN);
+            return t;
         }
         return NULL;
     }
 
     static
-    ast_t* parser_mul(parser_t* parser) {
+    ast_t* parser_expression(parser_t* parser);
+    static
+    ast_t* parser_mandatory_expression(parser_t* parser);
+
+    static
+    ast_t* parser_access_or_call(parser_t* parser) {
+        position_t* start = parser->lookahead->position, *ended = NULL;
         ast_t* node = parser_terminal(parser);
+        if (node == NULL) {
+            return NULL;
+        }
+
+        while (CHECKVALUE("(")) {
+            if (CHECKVALUE("(")) {
+                // call
+                ACCPETVALUE("(");
+                
+                INIT_ARRAY(args);
+
+                ast_t* argN = parser_expression(parser);
+                while (argN != NULL) {
+                    PUSH_ARRAY(args, argN);
+                    argN = NULL;
+                    if (CHECKVALUE(",")) {
+                        ACCPETVALUE(",");
+                        argN = parser_expression(parser);
+                        if (argN == NULL)
+                            ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+                    }
+                }
+                ACCPETVALUE(")");
+                ended = parser->previous->position;
+                node = ast_call_expression(node, args, position_merge(start, ended));
+            }
+        }
+
+        return node;
+    }
+
+    static
+    ast_t* parser_mul(parser_t* parser) {
+        ast_t* node = parser_access_or_call(parser);
         if (node == NULL) {
             return NULL;
         }
@@ -700,7 +784,7 @@ char* xirius_read_file(const char* path) {
                 ACCPETVALUE("%");
             }
 
-            ast_t* right = parser_terminal(parser);
+            ast_t* right = parser_access_or_call(parser);
             if (right == NULL)
                 ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a number!", NULL);
 
@@ -760,10 +844,10 @@ char* xirius_read_file(const char* path) {
 
             if (CHECKVALUE("<<")) {
                 ast_type = AST_BIN_LSHFT;
-                ACCPETVALUE("+");
+                ACCPETVALUE("<<");
             } else if (CHECKVALUE(">>")) {
                 ast_type = AST_BIN_RSHFT;
-                ACCPETVALUE("-");
+                ACCPETVALUE(">>");
             }
 
             ast_t* right = parser_add(parser);
@@ -922,7 +1006,100 @@ char* xirius_read_file(const char* path) {
     }
 
     static
+    ast_t* parser_expression(parser_t* parser) {
+        return parser_logical(parser);
+    }
+
+    static
+    ast_t* parser_mandatory_expression(parser_t* parser) {
+        ast_t* node = parser_expression(parser);
+        if (node == NULL)
+            ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+
+        return node;
+    }
+
+    static
+    ast_t* parser_statement(parser_t* parser);
+
+    static
+    ast_t* parser_var(parser_t* parser) {
+        position_t* start = parser->lookahead->position, *ended = NULL;
+        ACCPETVALUE("var");
+
+        INIT_ARRAY(var_names);
+        INIT_ARRAY(var_value);
+
+        ast_t* id = parser_terminal(parser), *value = NULL;
+        if (id == NULL)
+            ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an identifier!", NULL);
+
+        if (CHECKVALUE("=")) {
+            ACCPETVALUE("=");
+            value = parser_mandatory_expression(parser);
+
+            PUSH_ARRAY(var_names, id);
+            PUSH_ARRAY(var_value, value);
+        }
+
+        while (CHECKVALUE(",")) {
+            ACCPETVALUE(",");
+            id = parser_terminal(parser);
+            value = NULL;
+
+            if (id == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an identifier after \",\"!", NULL);
+
+            if (CHECKVALUE("=")) {
+                ACCPETVALUE("=");
+                value = parser_mandatory_expression(parser);
+
+                PUSH_ARRAY(var_names, id);
+                PUSH_ARRAY(var_value, value);
+            }
+        }
+
+        ACCPETVALUE(";");
+        ended = parser->previous->position;
+        return ast_var_decl(var_names, var_value, position_merge(start, ended));
+    }
+
+    static
+    ast_t* parser_if(parser_t* parser) {
+        position_t* start = parser->lookahead->position, *ended = NULL;
+        ACCPETVALUE("if");
+        ACCPETVALUE("(");
+
+        ast_t* condition = parser_mandatory_expression(parser);
+        if (condition == NULL)
+            ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+
+        ACCPETVALUE(")");
+        ast_t* thenv = parser_statement(parser);
+        if (thenv == NULL)
+            ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a statement!", NULL);
+
+        ast_t* elsev = NULL;
+        if (CHECKVALUE("else")) {
+            ACCPETVALUE("else");
+            elsev = parser_statement(parser);
+            if (elsev == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a statement!", NULL);
+        }
+
+        ended = parser->previous->position;
+        return ast_if_statement(condition, thenv, elsev, position_merge(start, ended));
+    }
+
+    static
     ast_t* parser_statement(parser_t* parser) {
+        if (KEYWORD("var")) {
+            return parser_var(parser);
+        }
+        else if (KEYWORD("if")) {
+            return parser_if(parser);
+        }
+
         position_t* start = parser->lookahead->position, *ended = NULL;
         ast_t* node = parser_logical(parser);
         if (node == NULL) {
@@ -934,10 +1111,24 @@ char* xirius_read_file(const char* path) {
     }
 
     static
+    ast_t* parser_program(parser_t* parser) {
+        position_t* start = parser->lookahead->position, *ended = NULL;
+        INIT_ARRAY(statements);
+        ast_t* stmnt = parser_statement(parser);
+        while (stmnt != NULL) {
+            PUSH_ARRAY(statements, stmnt);
+            stmnt = parser_statement(parser);
+        }
+        ACCPETTTYPE(TOKEN_EOF);
+        ended = parser->previous->position;
+        return ast_program(statements, position_merge(start, ended));
+    }
+
+    static
     ast_t* parser_parse(parser_t* parser) {
         parser->lookahead = lexer_get_next(parser->lexer);
         parser->previous = parser->lookahead;
-        return parser_statement(parser);
+        return parser_program(parser);
     }
 
     static
@@ -946,12 +1137,118 @@ char* xirius_read_file(const char* path) {
     }
 #endif
 
+#ifndef SYMBTABLE_H
+#define SYMBTABLE_H
+
+    typedef struct xirius_symbol_table_struct symbol_table_t;
+    typedef struct xirius_symbol_struct symbol_t;
+
+    typedef struct xirius_symbol_table_struct {
+        symbol_table_t* parent;
+        size_t size;
+        symbol_t** symbols;
+    } symbol_table_t;
+
+    typedef struct xirius_symbol_struct {
+        char* name;
+        size_t env_offset;
+        size_t env_locals;
+        bool is_global;
+        bool is_const;
+    } symbol_t;
+
+    static
+    symbol_table_t* symbol_table_new(symbol_table_t* parent) {
+        symbol_table_t* table = malloc(sizeof(symbol_table_t));
+        if (table == NULL)
+            ERROR("failed to allocate memory for symbol table!!!");
+
+        table->parent = parent;
+        table->size = 0;
+        table->symbols = malloc(sizeof(symbol_t*));
+        if (table->symbols == NULL)
+            ERROR("failed to allocate memory for symbol table symbols!!!");
+        table->symbols[0] = NULL;
+        return table;
+    }
+
+    static
+    bool symbol_table_exists(symbol_table_t* table, const char* name) {
+        size_t size = 0;
+        symbol_t* symbol;
+        while ((symbol = table->symbols[size++]) != NULL) {
+            if (xirius_str_equals(symbol->name, name))
+                return true;
+        }
+        return false;
+    }
+
+    static
+    bool symbol_table_exists_global(symbol_table_t* table, const char* name) {
+        symbol_table_t* current = table;
+        while (current != NULL) {
+            if (symbol_table_exists(current, name))
+                return true;
+            current = current->parent;
+        }
+        return false;
+    }
+
+    static
+    bool symbol_table_insert(symbol_table_t* table, symbol_t* symbol) {
+        if (symbol_table_exists(table, symbol->name)) {
+            return false;
+        }
+
+        table->symbols[table->size++] = symbol;
+        table->symbols = realloc(table->symbols, sizeof(symbol_t*) * (table->size + 1));
+        table->symbols[table->size] = NULL;
+        return true;
+    }
+
+    static
+    symbol_t* symbol_table_lookup(symbol_table_t* table, const char* name) {
+        if (!symbol_table_exists(table, name)) {
+            ERROR("symbol does not exist in the table!!!");
+        }
+        symbol_table_t* current = table;
+        while (current != NULL) {
+            if (symbol_table_exists(current, name)) {
+                size_t size = 0;
+                symbol_t* symbol;
+                while ((symbol = current->symbols[size++]) != NULL) {
+                    if (xirius_str_equals(symbol->name, name))
+                        return symbol;
+                }
+            }
+            current = current->parent;
+        }
+        return NULL;
+    }
+
+    static
+    symbol_t* symbol_new(const char* name, size_t offset, size_t locals, bool is_global, bool is_const) {
+        symbol_t* symbol = malloc(sizeof(symbol_t));
+        if (symbol == NULL)
+            ERROR("failed to allocate memory for symbol!!!");
+
+        symbol->name = xirius_str_new(name);
+        symbol->env_offset = offset;
+        symbol->env_locals = locals;
+        symbol->is_global = is_global;
+        symbol->is_const = is_const;
+        return symbol;
+    }
+
+#endif
+
 #include "../src/xirius.h"
 #ifndef GENERATOR_H
 #define GENERATOR_H
     // No optimization for now
     typedef struct xirius_generator_struct {
         parser_t* parser;
+        symbol_table_t* table;
         XS_context* context;
         XS_store* store;
         size_t env_offset;
@@ -965,6 +1262,7 @@ char* xirius_read_file(const char* path) {
             ERROR("failed to allocate memory for generator!!!");
 
         generator->parser = parser_new(path, data);
+        generator->table = symbol_table_new(NULL);
         generator->context = XS_context_new(XS_runtime_new());
         generator->store = XS_store_new();
         generator->env_offset = 0;
@@ -975,6 +1273,22 @@ char* xirius_read_file(const char* path) {
     static
     void generator_expression(generator_t* generator, ast_t* node) {
         switch (node->type) {
+            case AST_IDN: {
+                if (!symbol_table_exists_global(generator->table, node->str_0)) {
+                    // If the symbol is not in the table, then redirect to global property property
+                    XS_opcode_get_global_property(generator->store, node->str_0);
+                    return;
+                }
+
+                symbol_t* symbol = symbol_table_lookup(generator->table, node->str_0);
+
+                if (symbol->is_global) {
+                    XS_opcode_get_global_property(generator->store, symbol->name);
+                    return;
+                }
+                XS_opcode_load_name(generator->store, symbol->env_offset, symbol->env_locals, symbol->name);
+                break;
+            }
             case AST_INT: {
                 XS_opcode_push_const(generator->store, XS_value_new_int(generator->context, strtoll(node->str_0, NULL, 10)));
                 break;
@@ -993,6 +1307,23 @@ char* xirius_read_file(const char* path) {
             }
             case AST_NULL: {
                 XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
+                break;
+            }
+            case AST_CALL: {
+                ast_t* callee = node->data_0;
+                ast_t** args = node->multi_0;
+
+                size_t i, j = 0;
+                for (i = 0; args[i] != NULL; i++);
+
+                j = i;
+                while (i > 0) {
+                    generator_expression(generator, args[i - 1]);
+                    i--;
+                }
+
+                generator_expression(generator, callee);
+                XS_opcode_call(generator->store, j);
                 break;
             }
             case AST_BIN_MUL: {
@@ -1144,20 +1475,139 @@ char* xirius_read_file(const char* path) {
                 break;
             }
             default: 
-                ERROR_F(generator->parser->lexer->path, node->position, "[NOT IMPLEMENTED]", NULL);
+                ERROR_F(generator->parser->lexer->path, node->position, "[NOT IMPLEMENTED (%d)]", node->type);
         }
     }
+
+    #define ASSERT_IDENTIFIER(node) {\
+        if (node->type != AST_IDN) {\
+            ERROR_F(generator->parser->lexer->path, node->position, "expected an identifier!", NULL);\
+        }\
+    }\
 
     static
     void generator_statement(generator_t* generator, ast_t* node) {
         switch (node->type) {
+            case AST_VAR: {
+                size_t i = 0;
+                while (node->multi_0[i] != NULL) {
+                    ast_t* name  = node->multi_0[i];
+                    ast_t* value = node->multi_1[i];
+                    ASSERT_IDENTIFIER(name);
+                    if (value == NULL) {
+                        XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
+                    } else {
+                        generator_expression(generator, value);
+                    }
+                    XS_opcode_set_global_property(generator->store, name->str_0);
+                    
+                    if (symbol_table_exists(generator->table, name->str_0))
+                        ERROR_F(generator->parser->lexer->path, name->position, "variable \"%s\" already exists!", name->str_0);
+
+                    bool success = 
+                    symbol_table_insert(
+                        generator->table, 
+                        symbol_new(
+                            name->str_0, 
+                            generator->env_offset, 
+                            generator->env_locals++, 
+                            true, 
+                            false
+                        )
+                    );
+
+                    if (!success) {
+                        ERROR_F(generator->parser->lexer->path, name->position, "variable \"%s\" already exists!", name->str_0);
+                    }
+                    i++;
+                }
+                break;
+            }
+            case AST_IF: {
+                ast_t* condition = node->data_0;
+                ast_t* thenv = node->data_1;
+                ast_t* elsev = node->data_2;
+
+                XS_instruction* j0 = XS_opcode_pop_jump_if_false(generator->store, 0);
+                XS_instruction* j1 = NULL, *j2 = NULL;
+
+                switch (condition->type) {
+                    case AST_LOG_AND: {
+                        generator_expression(generator, condition->data_0);
+                        j0 =
+                        XS_opcode_pop_jump_if_false(generator->store, 0);
+                        generator_expression(generator, condition->data_1);
+                        j1 = 
+                        XS_opcode_pop_jump_if_false(generator->store, 0);
+                        // then
+                        generator_statement(generator, thenv);
+                        j2 = 
+                        XS_opcode_jump_forward(generator->store, 0); // forward to endif
+                        
+                        XS_opcode_jump_to_current_offset(generator->store, j0);
+                        XS_opcode_jump_to_current_offset(generator->store, j1);
+                        // else?
+                        if (elsev != NULL) {
+                            generator_statement(generator, elsev);
+                        }
+                        XS_opcode_jump_to_current_offset(generator->store, j2);
+                        break;
+                    }
+                    case AST_LOG_OR: {
+                        generator_expression(generator, condition->data_0);
+                        j0 =
+                        XS_opcode_pop_jump_if_true(generator->store, 0);
+                        generator_expression(generator, condition->data_1);
+                        j1 = 
+                        XS_opcode_pop_jump_if_false(generator->store, 0);
+                        // then
+                        XS_opcode_jump_to_current_offset(generator->store, j0);
+                        generator_statement(generator, thenv);
+                        j2 = 
+                        XS_opcode_jump_forward(generator->store, 0); // forward to endif
+                        XS_opcode_jump_to_current_offset(generator->store, j1);
+                        // else?
+                        if (elsev != NULL) {
+                            generator_statement(generator, elsev);
+                        }
+                        XS_opcode_jump_to_current_offset(generator->store, j2);
+                        break;
+                    }
+                    default: {
+                        generator_expression(generator, condition);
+                        j0 = XS_opcode_pop_jump_if_false(generator->store, 0);
+                        j1 = NULL;
+                        generator_statement(generator, thenv);
+                        j1 = XS_opcode_jump_forward(generator->store, 0);
+
+                        XS_opcode_jump_to_current_offset(generator->store, j0);
+                        if (elsev != NULL) {
+                            generator_statement(generator, elsev);
+                        }
+                        XS_opcode_jump_to_current_offset(generator->store, j1);
+                        break;
+                    }
+                }
+
+                break;
+            }
             case AST_EXPR_STMNT: {
                 generator_expression(generator, node->data_0);
                 XS_opcode_pop_top(generator->store);
                 break;
             }
+            case AST_PROGRAM: {
+                ast_t** statements = node->multi_0;
+                while (*statements != NULL) {
+                    generator_statement(generator, *statements);
+                    statements++;
+                }
+                XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
+                XS_opcode_return(generator->store);
+                break;
+            }
             default: 
-                ERROR_F(generator->parser->lexer->path, node->position, "[NOT IMPLEMENTED]", NULL);
+                ERROR_F(generator->parser->lexer->path, node->position, "[NOT IMPLEMENTED (%d)]", node->type);
         }
     }
 
@@ -1168,12 +1618,32 @@ char* xirius_read_file(const char* path) {
     }
 #endif
 
+
+XS_value* println(XS_context* context, XS_value** argv, int argc) {
+    printf("> ");
+    for (int i = 0; i < argc; i++) {
+        XS_value* arg = argv[i];
+        printf("%s", XS_value_to_const_string(arg));
+
+        if (i < argc - 1) {
+            printf(" ");
+        }
+    }
+    printf("\n");
+    return XS_value_new_nil(context);
+}
+
 int main(int argc, char** argv) {
     char* file = "./example.xs";
     char* data = xirius_read_file(file);
 
+    XS_value* println_fn = XS_value_new_cfunction(println, false, "println", 1);
+
     generator_t* generator = generator_new(file, data);
     XS_store* store = generator_generate(generator);
+
+    object_set(generator->context->global_object->value.obj_value, XS_STR(generator->context, "println"), println_fn);
+
     XS_runtime_execute(generator->context, store);
     printf("DONE!\n");
     return 0;
