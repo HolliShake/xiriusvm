@@ -1091,11 +1091,57 @@ bool utf_is_number(int codepoint) {
     ast_t* parser_expression(parser_t* parser);
     static
     ast_t* parser_mandatory_expression(parser_t* parser);
+    static
+    ast_t* parser_statement(parser_t* parser);
+
+    static
+    ast_t* parser_group(parser_t* parser) {
+        if (CHECKVALUE("(")) {
+            ACCPETVALUE("(");
+            ast_t* node = parser_expression(parser);
+            if (node == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+            ACCPETVALUE(")");
+            return node;
+        }
+        else if (KEYWORD("define")) {
+            position_t* start = parser->lookahead->position, *ended = NULL;
+            ACCPETVALUE("define");
+            ACCPETVALUE("(");
+            INIT_ARRAY(params);
+            ast_t* paramN = parser_terminal(parser);
+            while (paramN != NULL) {
+                PUSH_ARRAY(params, paramN);
+                paramN = NULL;
+                if (CHECKVALUE(",")) {
+                    ACCPETVALUE(",");
+                    paramN = parser_terminal(parser);
+                    if (paramN == NULL)
+                        ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an identifier after \",\"!", NULL);
+                }
+            }
+            ACCPETVALUE(")");
+
+            ACCPETVALUE("{");
+            INIT_ARRAY(statements);
+            ast_t* statement = parser_statement(parser);
+            while (statement != NULL) {
+                PUSH_ARRAY(statements, statement);
+                statement = NULL;
+                statement = parser_statement(parser);
+            }
+            ACCPETVALUE("}");
+            ended = parser->previous->position;
+            return ast_function_declaration(NULL, params, statements, position_merge(start, ended));
+        }
+
+        return parser_terminal(parser);
+    }
 
     static
     ast_t* parser_access_or_call(parser_t* parser) {
         position_t* start = parser->lookahead->position, *ended = NULL;
-        ast_t* node = parser_terminal(parser);
+        ast_t* node = parser_group(parser);
         if (node == NULL) {
             return NULL;
         }
@@ -1128,10 +1174,15 @@ bool utf_is_number(int codepoint) {
     }
 
     static
+    ast_t* parser_unary(parser_t* parser) {
+        return parser_access_or_call(parser);
+    }
+
+    static
     ast_t* parser_mul(parser_t* parser) {
         position_t* start = parser->lookahead->position, *ended = NULL;
 
-        ast_t* node = parser_access_or_call(parser);
+        ast_t* node = parser_unary(parser);
         if (node == NULL) {
             return NULL;
         }
@@ -1151,7 +1202,7 @@ bool utf_is_number(int codepoint) {
                 ACCPETVALUE("%");
             }
 
-            ast_t* right = parser_access_or_call(parser);
+            ast_t* right = parser_unary(parser);
             if (right == NULL)
                 ERROR_F(parser->lexer->path, parser->lookahead->position, "missing right-hand expression.", NULL);
 
@@ -1860,6 +1911,8 @@ bool utf_is_number(int codepoint) {
     typedef enum xirius_scope_type {
         SCOPE_GLOBAL,
         SCOPE_LOCAL,
+        SCOPE_CONDITIONAL,
+        SCOPE_SINGLE,
         SCOPE_LOOP,
         SCOPE_FUNCTION,
         SCOPE_AWAITABLE
@@ -1966,6 +2019,15 @@ bool utf_is_number(int codepoint) {
         }
     }
 
+    #define ASSERT_IDENTIFIER(node) {\
+        if (node->type != AST_IDN) {\
+            ERROR_F(generator->parser->lexer->path, node->position, "expected an identifier!", NULL);\
+        }\
+    }\
+
+    static
+    void generator_statement(generator_t* generator, scope_t* scope, ast_t* node);
+
     static
     void generator_expression(generator_t* generator, scope_t* scope, ast_t* node) {
         switch (node->type) {
@@ -2020,6 +2082,61 @@ bool utf_is_number(int codepoint) {
                 XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
                 // Cleanup
                 free(node);
+                break;
+            }
+            case AST_FUNCTION: {
+                ast_t** params = node->multi_0;
+                ast_t** statements = node->multi_1;
+
+                scope_t* function_scope = scope_new(scope, SCOPE_FUNCTION);
+
+                // Save the current store
+                XS_store* store = generator->store, *current = NULL;
+                generator->store = XS_store_new();
+
+                symbol_table_t* current_table = generator->table;
+                generator->table = symbol_table_new(current_table);
+
+                size_t paramc = 0;
+                while (*params != NULL) {
+                    ++paramc;
+                    ASSERT_IDENTIFIER((*params));
+                    XS_opcode_store_name_immediate(generator->store, (const char*) ((*params)->str_0));
+                    
+                    symbol_table_insert(
+                        generator->table, 
+                        symbol_new(
+                            (*params)->str_0, 
+                            generator->env_offset, 
+                            generator->env_locals++, 
+                            false, 
+                            false
+                        )
+                    );
+
+                    params++;
+                }
+
+                scope_t* local_scope = scope_new(function_scope, SCOPE_LOCAL);
+                while (*statements != NULL) {
+                    generator_statement(generator, local_scope, *statements);
+                    statements++;
+                }
+
+                XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
+                XS_opcode_return(generator->store);
+
+                // Restore the store
+                current = generator->store;
+                generator->store = store;
+
+                // Restore the table
+                symbol_table_free(generator->table);
+                generator->table = current_table;
+
+                // XS_value_new_fun
+                XS_value* fn = XS_value_new_function(generator->context, current, false, false, "anon", paramc);
+                XS_opcode_push_const(generator->store, fn);
                 break;
             }
             case AST_CALL: {
@@ -2223,12 +2340,6 @@ bool utf_is_number(int codepoint) {
                 ERROR_F(generator->parser->lexer->path, node->position, "[NOT IMPLEMENTED (%d)]", node->type);
         }
     }
-
-    #define ASSERT_IDENTIFIER(node) {\
-        if (node->type != AST_IDN) {\
-            ERROR_F(generator->parser->lexer->path, node->position, "expected an identifier!", NULL);\
-        }\
-    }\
 
     static
     void generator_statement(generator_t* generator, scope_t* scope, ast_t* node) {
@@ -2496,6 +2607,8 @@ bool utf_is_number(int codepoint) {
                 ast_t* elsev = node->data_2;
 
                 XS_instruction* j0, *j1 = NULL, *j2 = NULL;
+                scope_t* conditional_scope = scope_new(scope, SCOPE_CONDITIONAL),
+                *single_scope = scope_new(scope, SCOPE_SINGLE);
 
                 switch (condition->type) {
                     case AST_LOG_AND: {
@@ -2506,7 +2619,7 @@ bool utf_is_number(int codepoint) {
                         j1 = 
                         XS_opcode_pop_jump_if_false(generator->store, 0);
                         // then
-                        generator_statement(generator, scope, thenv);
+                        generator_statement(generator, conditional_scope, thenv);
                         j2 = 
                         XS_opcode_jump_forward(generator->store, 0); // forward to endif
 
@@ -2514,7 +2627,7 @@ bool utf_is_number(int codepoint) {
                         XS_opcode_jump_to_current_offset(generator->store, j1);
                         // else?
                         if (elsev != NULL) {
-                            generator_statement(generator, scope, elsev);
+                            generator_statement(generator, single_scope, elsev);
                         }
                         XS_opcode_jump_to_current_offset(generator->store, j2);
                         break;
@@ -2528,13 +2641,13 @@ bool utf_is_number(int codepoint) {
                         XS_opcode_pop_jump_if_false(generator->store, 0);
                         // then
                         XS_opcode_jump_to_current_offset(generator->store, j0);
-                        generator_statement(generator, scope, thenv);
+                        generator_statement(generator, conditional_scope, thenv);
                         j2 = 
                         XS_opcode_jump_forward(generator->store, 0); // forward to endif
                         XS_opcode_jump_to_current_offset(generator->store, j1);
                         // else?
                         if (elsev != NULL) {
-                            generator_statement(generator, scope, elsev);
+                            generator_statement(generator, single_scope, elsev);
                         }
                         XS_opcode_jump_to_current_offset(generator->store, j2);
                         break;
@@ -2543,17 +2656,20 @@ bool utf_is_number(int codepoint) {
                         generator_expression(generator, scope, condition);
                         j0 = XS_opcode_pop_jump_if_false(generator->store, 0);
                         j1 = NULL;
-                        generator_statement(generator, scope, thenv);
+                        generator_statement(generator, conditional_scope, thenv);
                         j1 = XS_opcode_jump_forward(generator->store, 0);
 
                         XS_opcode_jump_to_current_offset(generator->store, j0);
                         if (elsev != NULL) {
-                            generator_statement(generator, scope, elsev);
+                            generator_statement(generator, single_scope, elsev);
                         }
                         XS_opcode_jump_to_current_offset(generator->store, j1);
                         break;
                     }
                 }
+                scope_free(conditional_scope);
+                scope_free(single_scope);
+
                 // Cleanup
                 free(node->position);
                 free(node);

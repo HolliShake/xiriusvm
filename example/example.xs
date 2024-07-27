@@ -9,14 +9,12 @@ add(10, 20);
 add(1 << 32, 2 * 5);
 
 println("CALLED!");
-
 {
     local h = "Hey!";
     {
         h = h + "Yow!";
         println(h);
     }
-
 }
 
 define loopFN(limit) {
@@ -28,4 +26,19 @@ define loopFN(limit) {
 }
 
 println("BEGIN:");
-loopFN(2000);
+    loopFN(2);
+
+const mul = define(a, b, c) {
+    println(a);
+    println(b);
+    println(c(5));
+};
+
+println(mul("Hello", "World!", (define(g) { println("Hehe!"); })));
+
+var h = (define(z) {
+    println("LOOOOL!!");
+    println();
+})();
+
+println(h);

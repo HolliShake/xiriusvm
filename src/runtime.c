@@ -357,9 +357,10 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
             // Control
             case RETURN: {
                 XS_environment_reset(environment);
-                if (call_stack_base == 0) {
+                if (environment->parent != NULL)
+                    XS_environment_free(environment);
+                if (call_stack_base == 0)
                     break;
-                }
                 environment = ENVIRONMENT[--environment_base];
                 i = CALL_STACKI[--call_stack_base];
                 break;
