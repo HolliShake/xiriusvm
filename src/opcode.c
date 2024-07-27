@@ -242,6 +242,7 @@ EXPORT XS_instruction* XS_opcode_pop_jump_if_true(XS_store* store, size_t offset
 EXPORT XS_instruction* XS_opcode_jump_absolute(XS_store* store, size_t offset) {
     XS_instruction* instruction = XS_instruction_new(JUMP_ABSOLUTE);
         instruction->offset_0 = offset;
+        instruction->is_jump_set = true; // always true if absolute
     // Push to store
     XS_store_push(store, instruction);
     return instruction;
@@ -258,7 +259,7 @@ EXPORT XS_instruction* XS_opcode_jump_forward(XS_store* store, size_t offset) {
 // Util
 #define opcode_assert_jump(instruction)\
     if (!opcode_is_jump(instruction)) {\
-        fprintf(stderr, "%s::%s[%d]: instruction is not a jump instruction!!!\n", __FILE__, __func__, __LINE__);\
+        fprintf(stderr, "%s::%s[%d]: instruction is not a jump instruction (%d)!!!\n", __FILE__, __func__, __LINE__, instruction->opcode);\
         exit(1);\
     }\
 
@@ -270,6 +271,7 @@ bool opcode_is_jump(XS_instruction* instruction) {
         instruction->opcode == JUMP_IF_NOT_ERROR_OR_POP ||
         instruction->opcode == POP_JUMP_IF_FALSE    || 
         instruction->opcode == POP_JUMP_IF_TRUE     || 
+        instruction->opcode == JUMP_ABSOLUTE        ||
         instruction->opcode == JUMP_FORWARD
     );
 }

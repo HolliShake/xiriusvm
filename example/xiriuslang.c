@@ -4,6 +4,31 @@
 #include <string.h>
 #include <stdarg.h>
 #include <inttypes.h>
+#include <ctype.h>
+#include <uchar.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+    #define OS_WINDOWS 1
+    #define OS_MACOS 0
+    #define OS_LINUX 0
+    #define OS_BSD 0
+#elif defined(__APPLE__)
+    #define OS_WINDOWS 0
+    #define OS_MACOS 1
+    #define OS_LINUX 0
+    #define OS_BSD 0
+#elif defined(__linux__)
+    #define OS_WINDOWS 0
+    #define OS_MACOS 0
+    #define OS_LINUX 1
+    #define OS_BSD 0
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+    #define OS_WINDOWS 0
+    #define OS_MACOS 0
+    #define OS_LINUX 0
+    #define OS_BSD 1
+#endif
+
 
 #define ERROR(msg) {\
     fprintf(stderr, "%s::%s:[%d]: %s\n", __FILE__, __func__, __LINE__, msg);\
@@ -77,6 +102,136 @@ char* xirius_read_file(const char* path) {
     
     return buffer;
 }
+
+
+#ifndef UTF8
+#define UTF8
+
+/*
+_BYTE1 = 0b00000000,
+    _BYTE2 = 0b11000000,
+    _BYTE3 = 0b11100000,
+    _BYTE4 = 0b11110000,
+
+    _2BYTE_FOLLOW = 0b00011111,
+    _3BYTE_FOLLOW = 0b00001111,
+    _4BYTE_FOLLOW = 0b00000111,
+
+    _VALID_TRAILING = 0b10000000,
+    _MAX_TRAILING   = 0b00111111
+
+*/
+
+#define _BYTE1 0b10000000
+#define _BYTE2 0b11000000
+#define _BYTE3 0b11100000
+#define _BYTE4 0b11110000
+
+#define _2BYTE_FOLLOW 0b00011111
+#define _3BYTE_FOLLOW 0b00001111
+#define _4BYTE_FOLLOW 0b00000111
+
+#define _MAX_TRAILING 0b00111111
+
+static
+int utf_size_of_utf(unsigned char firstByte) {
+    if ((firstByte & _BYTE4) == _BYTE4)
+        return 4;
+    else if ((firstByte & _BYTE3) == _BYTE3)
+        return 3;
+    else if ((firstByte & _BYTE2) == _BYTE2)
+        return 2;
+    else if ((firstByte & _BYTE1) == 0)
+        return 1;
+    return 0;
+}
+
+static
+int utf_size_of_codepoint(int codePoint) {
+    if (codePoint < 0x80)
+        return 1;
+    else if (codePoint < 0x000800)
+        return 2;
+    else if (codePoint < 0x010000)
+        return 3;
+    else if (codePoint < 0x110000)
+        return 4;
+    return 0;
+}
+
+static
+char* utf_codepoint_to_string(int codepoint) {
+    char* utf8_str = malloc(utf_size_of_codepoint(codepoint) + 1);
+    if (codepoint <= 0x7F) {
+        // 1-byte UTF-8
+        utf8_str[0] = codepoint;
+        utf8_str[1] = '\0';
+    } else if (codepoint <= 0x7FF) {
+        // 2-byte UTF-8
+        utf8_str[0] = 0xC0 | (codepoint >> 6);
+        utf8_str[1] = 0x80 | (codepoint & 0x3F);
+        utf8_str[2] = '\0';
+    } else if (codepoint <= 0xFFFF) {
+        // 3-byte UTF-8
+        utf8_str[0] = 0xE0 | (codepoint >> 12);
+        utf8_str[1] = 0x80 | ((codepoint >> 6) & 0x3F);
+        utf8_str[2] = 0x80 | (codepoint & 0x3F);
+        utf8_str[3] = '\0';
+    } else if (codepoint <= 0x10FFFF) {
+        // 4-byte UTF-8
+        utf8_str[0] = 0xF0 | (codepoint >> 18);
+        utf8_str[1] = 0x80 | ((codepoint >> 12) & 0x3F);
+        utf8_str[2] = 0x80 | ((codepoint >> 6) & 0x3F);
+        utf8_str[3] = 0x80 | (codepoint & 0x3F);
+        utf8_str[4] = '\0';
+    } else {
+        // Invalid codepoint
+        utf8_str[0] = '\0';
+    }
+    return utf8_str;
+}
+
+static
+int utf_to_codepoint(unsigned char b1, unsigned char b2, unsigned char b3, unsigned char b4) {
+    int ord = 0;
+    switch (utf_size_of_utf(b1))
+    {
+        case 1:
+            return b1;
+            break;
+        case 2:
+            ord  = ((b1 & _2BYTE_FOLLOW) << 6);
+            ord |= ((b2 & _MAX_TRAILING));
+            break;
+        case 3:
+            ord  = ((b1 & _3BYTE_FOLLOW) << 12);
+            ord |= ((b2 & _MAX_TRAILING) <<  6);
+            ord |= ((b3 & _MAX_TRAILING));
+            break;
+        case 4:
+            ord  = ((b1 & _4BYTE_FOLLOW) << 18);
+            ord |= ((b2 & _MAX_TRAILING) << 12);
+            ord |= ((b3 & _MAX_TRAILING) <<  6);
+            ord |= ((b4 & _MAX_TRAILING));
+            break;
+        default:
+            break;
+    }
+    
+    return ord;
+}
+
+static
+bool utf_is_letter(int codepoint) {
+    return isalpha(codepoint);
+}
+
+static
+bool utf_is_number(int codepoint) {
+    return isdigit(codepoint);
+}
+
+#endif
 
 #ifndef POSITION_H
 #define POSITION_H
@@ -166,23 +321,61 @@ char* xirius_read_file(const char* path) {
     }
 
     static
+    int lexer_codepoint(lexer_t* lexer) {
+        int codePoint = 0;
+        int size = utf_size_of_utf((unsigned char) lexer->data[lexer->index]);
+
+        if (size == 1)
+            codePoint = utf_to_codepoint(
+                lexer->data[lexer->index], 
+                0, 0, 0
+            );
+        else if (size == 2)
+            codePoint = utf_to_codepoint(
+                lexer->data[lexer->index + 0], 
+                lexer->data[lexer->index + 1], 
+                0, 0
+            );
+        else if (size == 3)
+            codePoint = utf_to_codepoint(
+                lexer->data[lexer->index + 0], 
+                lexer->data[lexer->index + 1], 
+                lexer->data[lexer->index + 2], 
+                0
+            );
+        else if (size == 4)
+            codePoint = utf_to_codepoint(
+                lexer->data[lexer->index + 0], 
+                lexer->data[lexer->index + 1], 
+                lexer->data[lexer->index + 2], 
+                lexer->data[lexer->index + 3]
+            );
+        else {
+            ERROR("invalid utf-8 character!!!");
+        }
+        return codePoint;
+    }
+
+    static
+    char* lexer_lookahead(lexer_t* lexer) {
+        return utf_codepoint_to_string(lexer_codepoint(lexer));
+    }
+
+    static
     void lexer_forward(lexer_t* lexer) {
         if (lexer->index >= strlen(lexer->data))
             return;
 
-        if (lexer->data[lexer->index] == '\n') {
+        int codepoint = lexer_codepoint(lexer);
+
+        if (codepoint == '\n') {
             lexer->line++;
             lexer->colm = 1;
         } else {
             lexer->colm++;
         }
 
-        lexer->index++;
-    }
-
-    static
-    char* lexer_lookahead(lexer_t* lexer) {
-        return xirius_str_format("%c", lexer->data[lexer->index]);
+        lexer->index += utf_size_of_codepoint(codepoint);
     }
 
     static
@@ -192,21 +385,38 @@ char* xirius_read_file(const char* path) {
 
     static
     bool lexer_is_whitespace(lexer_t* lexer) {
-        char c = lexer->data[lexer->index];
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+        int c = lexer_codepoint(lexer);
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            return true;
+        }
+
+        return iswspace(c);
     }
 
     static
     bool lexer_is_identifier(lexer_t* lexer) {
         // does not support utf-8
-        char c = lexer->data[lexer->index];
-        return (c == '_' ) || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        int c = lexer_codepoint(lexer);
+        if ((c == '_' ) || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+            return true;
+        }
+
+        return utf_is_letter(c);
     }
 
     static
     bool lexer_is_digit(lexer_t* lexer) {
-        char c = lexer->data[lexer->index];
-        return c >= '0' && c <= '9';
+        int c = lexer_codepoint(lexer);
+        if (c >= '0' && c <= '9') {
+            return true;
+        }
+
+        return utf_is_number(c);
+    }
+
+    static
+    bool lexer_is_string(lexer_t* lexer) {
+        return lexer_codepoint(lexer) == '"';
     }
 
     static
@@ -239,7 +449,7 @@ char* xirius_read_file(const char* path) {
             lexer_forward(lexer);
         }
 
-        if (lexer->data[lexer->index] == '.') {
+        if (lexer_codepoint(lexer) == '.') {
             value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
             free(old); free(look);
             lexer_forward(lexer);
@@ -268,11 +478,110 @@ char* xirius_read_file(const char* path) {
     }
 
     static
-    token_t* lexer_next_symbol(lexer_t* lexer) {
+    token_t* lexer_next_string(lexer_t* lexer) {
         size_t start_line = lexer->line, start_colm = lexer->colm;
         char* value = xirius_str_new(""), *old = NULL, *look = NULL;
 
-        char c = lexer->data[lexer->index];
+        bool open = lexer_is_string(lexer), close = false;
+        lexer_forward(lexer);
+        close = lexer_is_string(lexer);
+
+        while ((!lexer_is_eof(lexer)) && (open != close)) {
+            if (lexer_codepoint(lexer) == '\n') {
+                break;
+            }
+
+            if (lexer_codepoint(lexer) == '\\') {
+                lexer_forward(lexer);
+
+                switch (lexer_codepoint(lexer)) {
+                    case 'b':
+                        value = xirius_str_add(old = value, "\b");
+                        break;
+                    case 'n':
+                        if (OS_WINDOWS || OS_MACOS)
+                            value = xirius_str_add(old = value, "\r\n");
+                        else 
+                            value = xirius_str_add(old = value, "\n");
+                        break;
+                    case 'r':
+                        value = xirius_str_add(old = value, "\r");
+                        break;
+                    case 't':
+                        value = xirius_str_add(old = value, "\t");
+                        break;
+                    case '\"':
+                        value = xirius_str_add(old = value, "\"");
+                        break;
+                    case '\'':
+                        value = xirius_str_add(old = value, "\'");
+                        break;
+                    case '\\':
+                        value = xirius_str_add(old = value, "\\\\");
+                        break;
+                    default:
+                        ERROR_F(lexer->path, position_new(start_line, start_colm), "unexpected escape character \"\\%s\"!", lexer_lookahead(lexer));
+                }
+            } else {
+                value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
+                free(old); free(look);
+            }
+
+            lexer_forward(lexer);
+            close = lexer_is_string(lexer);
+        }
+
+        if (open != close)
+            ERROR_F(lexer->path, position_new(start_line, start_colm), "expected a closing string!", NULL);
+
+        lexer_forward(lexer);
+
+        return token_new(
+            TOKEN_STR, 
+            value, 
+            position_new(start_line, start_colm)
+        );
+    }
+
+    static
+    bool lexer_is_symbol_start(char c) {
+        switch (c) {
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+            case '.':
+            case ',':
+            case ':':
+            case ';':
+            case '*':
+            case '%':
+            case '/':
+            case '+':
+            case '-':
+            case '<':
+            case '>':
+            case '!':
+            case '=':
+            case '&':
+            case '|':
+            case '^':
+                return true;
+            
+            default:
+                return false;
+        }
+    }
+
+    static
+    token_t* lexer_next_symbol(lexer_t* lexer) {
+        size_t start_line = lexer->line, start_colm = lexer->colm;
+        char* value = xirius_str_new(""), *old = NULL, *look = NULL;
+        
+
+        char c = lexer_codepoint(lexer);
         switch (c) {
             case '(':
             case ')':
@@ -294,7 +603,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '=') {
+                if (lexer_codepoint(lexer) == '=') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -307,7 +616,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '/' || lexer->data[lexer->index] == '*') {
+                if (lexer_codepoint(lexer)== '/' || lexer_codepoint(lexer) == '*') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -320,7 +629,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '=') {
+                if (lexer_codepoint(lexer) == '=') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -333,7 +642,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '+' || lexer->data[lexer->index] == '=') {
+                if (lexer_codepoint(lexer) == '+' || lexer_codepoint(lexer) == '=') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -346,7 +655,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '-' || lexer->data[lexer->index] == '=') {
+                if (lexer_codepoint(lexer) == '-' || lexer_codepoint(lexer) == '=') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -359,7 +668,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '<' || lexer->data[lexer->index] == '=') {
+                if (lexer_codepoint(lexer) == '<' || lexer_codepoint(lexer) == '=') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -372,7 +681,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '>' || lexer->data[lexer->index] == '=') {
+                if (lexer_codepoint(lexer) == '>' || lexer_codepoint(lexer) == '=') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -385,7 +694,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '=') {
+                if (lexer_codepoint(lexer) == '=') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -398,7 +707,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '=') {
+                if (lexer_codepoint(lexer) == '=') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -411,7 +720,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '&') {
+                if (lexer_codepoint(lexer) == '&') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -424,7 +733,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '|') {
+                if (lexer_codepoint(lexer) == '|') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -437,7 +746,7 @@ char* xirius_read_file(const char* path) {
                 free(old); free(look);
                 lexer_forward(lexer);
 
-                if (lexer->data[lexer->index] == '^') {
+                if (lexer_codepoint(lexer) == '^') {
                     value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
                     free(old); free(look);
                     lexer_forward(lexer);
@@ -446,13 +755,21 @@ char* xirius_read_file(const char* path) {
                 break;
             }
             default: {
-                while (!lexer_is_eof(lexer) && !lexer_is_whitespace(lexer)) {
-                    value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
-                    free(old); free(look);
-                    lexer_forward(lexer);
+                if (lexer_codepoint(lexer) > 0x80) {
+                    while (!lexer_is_eof(lexer) && (lexer_codepoint(lexer) > 0x80)) {
+                        value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
+                        free(old); free(look);
+                        lexer_forward(lexer);
+                    }
+                    ERROR_F(lexer->path, position_new(start_line, start_colm), "unexpected symbol \"%s\"!", value);
+                } else {
+                    while (!lexer_is_eof(lexer) && !lexer_is_symbol_start(lexer_codepoint(lexer))) {
+                        value = xirius_str_add(old = value, look = lexer_lookahead(lexer));
+                        free(old); free(look);
+                        lexer_forward(lexer);
+                    }
+                    ERROR_F(lexer->path, position_new(start_line, start_colm), "unexpected symbol \"%s\"!", value);
                 }
-
-                ERROR_F(lexer->path, position_new(start_line, start_colm), "unexpected symbol \"%s\"!", value);
             }
         }
 
@@ -473,6 +790,8 @@ char* xirius_read_file(const char* path) {
                 return lexer_next_id(lexer);
             } else if (lexer_is_digit(lexer)) {
                 return lexer_next_number(lexer);
+            } else if (lexer_is_string(lexer)) {
+                return lexer_next_string(lexer);
             } else {
                 return lexer_next_symbol(lexer);
             }
@@ -489,7 +808,7 @@ char* xirius_read_file(const char* path) {
         token_t* token = NULL;
         do {
             token = lexer_get_next(lexer);
-            printf("TOKEN: %s\n", token->value);
+            printf("TOKEN: %d \"%s\"\n", token->type, token->value);
         } while (token->type != TOKEN_EOF);
     }
 
@@ -531,6 +850,7 @@ char* xirius_read_file(const char* path) {
         AST_LOG_OR,
         // 
         AST_VAR,
+        AST_WHILE,
         AST_IF,
         AST_EXPR_STMNT,
         AST_PROGRAM
@@ -601,6 +921,14 @@ char* xirius_read_file(const char* path) {
         ast_t* ast = ast_init(AST_VAR, pos);
         ast->multi_0 = names;
         ast->multi_1 = values;
+        return ast;
+    }
+
+    static
+    ast_t* ast_while_statement(ast_t* condition, ast_t* body, position_t* pos) {
+        ast_t* ast = ast_init(AST_WHILE, pos);
+        ast->data_0 = condition;
+        ast->data_1 = body;
         return ast;
     }
 
@@ -1065,6 +1393,25 @@ char* xirius_read_file(const char* path) {
     }
 
     static
+    ast_t* parser_while(parser_t* parser) {
+        position_t* start = parser->lookahead->position, *ended = NULL;
+        ACCPETVALUE("while");
+        ACCPETVALUE("(");
+
+        ast_t* condition = parser_mandatory_expression(parser);
+        if (condition == NULL)
+            ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+
+        ACCPETVALUE(")");
+        ast_t* body = parser_statement(parser);
+        if (body == NULL)
+            ERROR_F(parser->lexer->path, parser->lookahead->position, "expected a statement!", NULL);
+
+        ended = parser->previous->position;
+        return ast_while_statement(condition, body, position_merge(start, ended));
+    }
+
+    static
     ast_t* parser_if(parser_t* parser) {
         position_t* start = parser->lookahead->position, *ended = NULL;
         ACCPETVALUE("if");
@@ -1095,6 +1442,9 @@ char* xirius_read_file(const char* path) {
     ast_t* parser_statement(parser_t* parser) {
         if (KEYWORD("var")) {
             return parser_var(parser);
+        }
+        else if (KEYWORD("while")) {
+            return parser_while(parser);
         }
         else if (KEYWORD("if")) {
             return parser_if(parser);
@@ -1523,13 +1873,60 @@ char* xirius_read_file(const char* path) {
                 }
                 break;
             }
+            case AST_WHILE: {
+                ast_t* condition = node->data_0;
+                ast_t* body = node->data_1;
+
+                size_t start = XS_opcode_get_current_jump_offset(generator->store);
+                XS_instruction* j0, *j1 = NULL;
+
+                switch (condition->type) {
+                    case AST_LOG_AND: {
+                        generator_expression(generator, condition->data_0);
+                        j0 = 
+                        XS_opcode_pop_jump_if_false(generator->store, 0);
+                        generator_expression(generator, condition->data_1);
+                        j1 =
+                        XS_opcode_pop_jump_if_false(generator->store, 0);
+                        // while body
+                        generator_statement(generator, body);
+                        XS_opcode_jump_absolute(generator->store, start);
+                        XS_opcode_jump_to_current_offset(generator->store, j0);
+                        XS_opcode_jump_to_current_offset(generator->store, j1);
+                        break;
+                    }
+                    case AST_LOG_OR: {
+                        generator_expression(generator, condition->data_0);
+                        j0 = 
+                        XS_opcode_pop_jump_if_true(generator->store, 0);
+                        generator_expression(generator, condition->data_1);
+                        j1 =
+                        XS_opcode_pop_jump_if_false(generator->store, 0);
+                        // while body
+                        XS_opcode_jump_to_current_offset(generator->store, j0);
+                        generator_statement(generator, body);
+                        XS_opcode_jump_absolute(generator->store, start);
+                        XS_opcode_jump_to_current_offset(generator->store, j1);
+                        break;
+                    }
+                    default: {
+                        generator_expression(generator, condition);
+                        j0 = 
+                        XS_opcode_pop_jump_if_false(generator->store, 0);
+                        generator_statement(generator, body);
+                        XS_opcode_jump_absolute(generator->store, start);
+                        XS_opcode_jump_to_current_offset(generator->store, j0);
+                        break;
+                    }
+                }
+                break;
+            }
             case AST_IF: {
                 ast_t* condition = node->data_0;
                 ast_t* thenv = node->data_1;
                 ast_t* elsev = node->data_2;
 
-                XS_instruction* j0 = XS_opcode_pop_jump_if_false(generator->store, 0);
-                XS_instruction* j1 = NULL, *j2 = NULL;
+                XS_instruction* j0, *j1 = NULL, *j2 = NULL;
 
                 switch (condition->type) {
                     case AST_LOG_AND: {
@@ -1543,7 +1940,7 @@ char* xirius_read_file(const char* path) {
                         generator_statement(generator, thenv);
                         j2 = 
                         XS_opcode_jump_forward(generator->store, 0); // forward to endif
-                        
+
                         XS_opcode_jump_to_current_offset(generator->store, j0);
                         XS_opcode_jump_to_current_offset(generator->store, j1);
                         // else?
