@@ -71,6 +71,10 @@ EXPORT XS_value *XS_value_new_obj(XS_context* context) {
 
 EXPORT XS_value* XS_value_new_cfunction(XS_context* context, cfunction_t cfunction, bool async, bool variadict, const char* name, int argc) {
     XS_value* new_value = XS_value_init(context, XS_NATIVE_FUNCTION);
+    if (variadict && argc <= 0) {
+        fprintf(stderr, "%s::%s[%d]: variadic functions must have atleast one argument!\n", __FILE__, __func__, __LINE__);
+        exit(1);
+    }
     new_value->name = str__new(name);
     new_value->argc = argc;
     new_value->async = async;
@@ -81,6 +85,10 @@ EXPORT XS_value* XS_value_new_cfunction(XS_context* context, cfunction_t cfuncti
 
 EXPORT XS_value* XS_value_new_function(XS_context* context, XS_store* store, bool async, bool variadict, const char* name, int argc) {
     XS_value* new_value = XS_value_init(context,  XS_DEFINE_FUNCTION);
+    if (variadict && argc <= 0) {
+        fprintf(stderr, "%s::%s[%d]: variadic functions must have atleast one argument!\n", __FILE__, __func__, __LINE__);
+        exit(1);
+    }
     new_value->store = store;
     new_value->name = str__new(name);
     new_value->argc = argc;

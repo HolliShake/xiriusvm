@@ -38,7 +38,16 @@ println(mul("Hello", "World!", (define(g) { println("Hehe!"); })));
 
 var h = (define(z) {
     println("LOOOOL!!");
-    println();
-})();
+    println(z);
+})(20);
 
+println("_________");
 println(h);
+println(1,2,3,4, 5, 6, 7);
+
+
+const f = define() {
+
+};
+
+println(f(2, 3, 4, 5));

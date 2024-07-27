@@ -147,8 +147,13 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                     for (size_t j = 0; j < instruction->data_0; j++) {
                         argv[j] = POP();
                     }
+
+                    int required_args = ((!fn->variadict) 
+                        ? fn->argc
+                        : fn->argc - 1);
+
                     /**** CHECK IF SIGNITURE MATCHED ****/ 
-                    if (fn->argc != instruction->data_0) {
+                    if ((fn->variadict && instruction->data_0 < required_args) || (!fn->variadict && fn->argc != required_args)) {
                         XS_value* error = XS_ERR(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
                         PUSH(error);
                         break;
@@ -160,8 +165,12 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                     ENVIRONMENT[++environment_base] = fn->store->environment;
                     environment = ENVIRONMENT[environment_base];
 
+                    int required_args = ((!fn->variadict) 
+                        ? fn->argc
+                        : fn->argc - 1);
+
                     /**** CHECK IF SIGNITURE MATCHED ****/ 
-                    if (fn->argc != instruction->data_0) {
+                    if ((fn->variadict && instruction->data_0 < required_args) || (!fn->variadict && fn->argc != required_args)) {
                         XS_value* error = XS_ERR(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
                         PUSH(error);
                         break;
