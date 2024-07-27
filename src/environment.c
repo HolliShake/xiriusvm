@@ -86,6 +86,20 @@ void XS_environment_resize(XS_environment* environment) {
     environment->capacity *= 2;
 }
 
+void XS_environment_reset(XS_environment* environment) {
+    for (size_t i = 0; i < environment->capacity; i++) {
+        XS_environment_cell* cell = environment->bucket[i];
+        while (cell != NULL) {
+            XS_environment_cell* next = cell->next;
+            XS_free((char*) cell->name);
+            XS_free(cell);
+            cell = next;
+        }
+        environment->bucket[i] = NULL;
+    }
+    environment->elements = 0;
+}
+
 void XS_environment_dump(XS_environment* environment) {
     for (size_t i = 0; i < environment->capacity; i++) {
         XS_environment_cell* cell = environment->bucket[i];

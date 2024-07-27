@@ -17,5 +17,15 @@ println("CALLED!");
         println(h);
     }
 
-
 }
+
+define loopFN(limit) {
+    local index = 0;
+    while (index < limit) {
+        index = index + 1;
+        println(index);
+    }
+}
+
+println("BEGIN:");
+loopFN(2000);
