@@ -11,6 +11,7 @@ EXPORT XS_store* XS_store_new() {
     store->stack = NULL;
     store->icount = 0;
     store->instructions = NULL;
+    store->environment = XS_environment_new(NULL);
     return store;
 }
 

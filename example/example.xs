@@ -1,20 +1,21 @@
 
-var x = false && true;
-var y = 100 * 5 - 1.5;
-var z = 1 << 32;
+define add(a, b) {
+    println(a);
+    println(b);
+}
 
-println(x);
-println(y);
-println(z);
-println(3 < 2);
+add(101, 201);
+add(10, 20);
+add(1 << 32, 2 * 5);
 
-if (true && false || true) 
-    println(103);
-else if (false || true)
-    println(203);
-else 
-    println(303);
+println("CALLED!");
 
-println("Hello \n\t World!!");
-while (true) 
-    println("LOOP...");
+{
+    local h = "Hey!";
+    {
+        h = h + "Yow!";
+        println(h);
+    }
+
+
+}

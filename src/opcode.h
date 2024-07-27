@@ -6,6 +6,8 @@
 #define OPCODE_H
     typedef enum xirius_opcode_enum {
         LOAD_NAME,
+        STORE_NAME_IMMEDIATE,
+        STORE_NAME,
         PUSH_CONST,
         // Object operations
         SET_GLOBAL_PROPERTY,
@@ -41,7 +43,10 @@
         POP_JUMP_IF_FALSE,
         POP_JUMP_IF_TRUE,
         JUMP_ABSOLUTE,
-        JUMP_FORWARD
+        JUMP_FORWARD,
+        // Environment Block
+        INITIALIZE_BLOCK,
+        END_BLOCK,
     } XS_opcode;
 
     typedef struct xirius_instruction_struct {
@@ -67,7 +72,9 @@
     EXPORT XS_instruction* XS_instruction_new(XS_opcode opcode);
     EXPORT void XS_instruction_free(XS_instruction* instruction);
     // Variables
-    EXPORT void XS_opcode_load_name(XS_store* store, size_t env_offset, size_t var_offset, const char* name);
+    EXPORT void XS_opcode_load_name(XS_store* store, const char* name);
+    EXPORT void XS_opcode_store_name_immediate(XS_store* store, const char* name);
+    EXPORT void XS_opcode_store_name(XS_store* store, const char* name);
     // Constants
     EXPORT void XS_opcode_push_const(XS_store* store, XS_value* value);
     // Object operations
@@ -105,6 +112,9 @@
     EXPORT XS_instruction* XS_opcode_pop_jump_if_true(XS_store* store, size_t offset);
     EXPORT XS_instruction* XS_opcode_jump_absolute(XS_store* store, size_t offset);
     EXPORT XS_instruction* XS_opcode_jump_forward(XS_store* store, size_t offset);
+    // Environment Block
+    EXPORT void XS_opcode_initialize_block(XS_store* store);
+    EXPORT void XS_opcode_end_block(XS_store* store);
     // Util
     EXPORT size_t XS_opcode_get_current_jump_offset(XS_store* store);
     EXPORT void XS_opcode_set_jump_offset(XS_instruction* instruction, size_t offset);

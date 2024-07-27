@@ -15,10 +15,10 @@ XS_value* println(XS_context* context, XS_value** argv, int argc) {
 }
 
 int main() {
-    XS_value* println_fn = XS_value_new_cfunction(println, false, "println", 2);
-
     XS_runtime* runtime = XS_runtime_new();
     XS_context* context = XS_context_new(runtime);
+
+    XS_value* println_fn = XS_value_new_cfunction(context, println, false, false, "println", 2);
 
     XS_store* store = XS_store_new();
     

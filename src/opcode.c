@@ -34,10 +34,22 @@ EXPORT void XS_instruction_free(XS_instruction* instruction) {
 }
 
 // Variables
-EXPORT void XS_opcode_load_name(XS_store* store, size_t env_offset, size_t var_offset, const char* name) {
+EXPORT void XS_opcode_load_name(XS_store* store, const char* name) {
     XS_instruction* instruction = XS_instruction_new(LOAD_NAME);
-        instruction->offset_0 = env_offset;
-        instruction->offset_1 = var_offset;
+        instruction->str_0 = str__new(name);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_store_name_immediate(XS_store* store, const char* name) {
+    XS_instruction* instruction = XS_instruction_new(STORE_NAME_IMMEDIATE);
+        instruction->str_0 = str__new(name);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_store_name(XS_store* store, const char* name) {
+    XS_instruction* instruction = XS_instruction_new(STORE_NAME);
         instruction->str_0 = str__new(name);
     // Push to store
     XS_store_push(store, instruction);
@@ -254,6 +266,19 @@ EXPORT XS_instruction* XS_opcode_jump_forward(XS_store* store, size_t offset) {
     // Push to store
     XS_store_push(store, instruction);
     return instruction;
+}
+
+// Environment Block
+EXPORT void XS_opcode_initialize_block(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(INITIALIZE_BLOCK);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_end_block(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(END_BLOCK);
+    // Push to store
+    XS_store_push(store, instruction);
 }
 
 // Util

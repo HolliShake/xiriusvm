@@ -5,6 +5,11 @@
 
 #ifndef XSVALUE_H
 #define XSVALUE_H
+
+    #ifndef STORE_H
+        /*virtual*/ typedef struct xirius_store_struct XS_store;
+    #endif
+
     typedef enum xirius_value_type_enum {
         XS_INT,
         XS_FLT,
@@ -28,9 +33,12 @@
         // Data
         int argc;
         bool async;
+        bool variadict;
 
         // Type
         XS_value_type type;
+
+        XS_store* store;
 
         union value {
             int64_t int_value; // 64-bit integer
@@ -79,7 +87,9 @@
         EXPORT XS_value* XS_value_get_object_property(XS_value* object, XS_value* key);
     
     // Cfunction type
-    EXPORT XS_value* XS_value_new_cfunction(cfunction_t cfunction, bool async, const char* name, int argc);
+    EXPORT XS_value* XS_value_new_cfunction(XS_context* context, cfunction_t cfunction, bool async, bool variadict, const char* name, int argc);
+    // Define function type
+    EXPORT XS_value* XS_value_new_function(XS_context* context, XS_store* store, bool async, bool variadict, const char* name, int argc);
 
     // Type Checker
     EXPORT bool XS_value_is_int(XS_value* value);

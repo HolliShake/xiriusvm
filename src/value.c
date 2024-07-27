@@ -1,13 +1,19 @@
 #include "value.h"
 
+#ifndef STORE_H
+    /*virtual*/ typedef struct xirius_store_struct XS_store;
+#endif
+
 static
 XS_value* XS_value_init(XS_context* context, XS_value_type type) {
     XS_value* new_value = XS_malloc(sizeof(XS_value));
     assert_allocation(new_value);
     new_value->type = type;
+    new_value->store = NULL;
     new_value->name = NULL;
     new_value->argc = 0;
     new_value->async = false;
+    new_value->variadict = false;
     new_value->value.int_value = 0;
     new_value->value.flt_value = 0;
     new_value->value.str_value = NULL;
@@ -63,14 +69,24 @@ EXPORT XS_value *XS_value_new_obj(XS_context* context) {
         return object_get(object->value.obj_value, key);
     }
 
-EXPORT XS_value* XS_value_new_cfunction(cfunction_t cfunction, bool async, const char* name, int argc) {
-    XS_value* new_value = XS_malloc(sizeof(XS_value));
-    assert_allocation(new_value);
-    new_value->type = XS_NATIVE_FUNCTION;
+EXPORT XS_value* XS_value_new_cfunction(XS_context* context, cfunction_t cfunction, bool async, bool variadict, const char* name, int argc) {
+    XS_value* new_value = XS_value_init(context, XS_NATIVE_FUNCTION);
     new_value->name = str__new(name);
     new_value->argc = argc;
     new_value->async = async;
+    new_value->variadict = variadict;
     new_value->value.obj_value = cfunction;
+    return new_value;
+}
+
+EXPORT XS_value* XS_value_new_function(XS_context* context, XS_store* store, bool async, bool variadict, const char* name, int argc) {
+    XS_value* new_value = XS_value_init(context,  XS_DEFINE_FUNCTION);
+    new_value->store = store;
+    new_value->name = str__new(name);
+    new_value->argc = argc;
+    new_value->async = async;
+    new_value->variadict = variadict;
+    new_value->value.obj_value = NULL;
     return new_value;
 }
 

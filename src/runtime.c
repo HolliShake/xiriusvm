@@ -16,33 +16,74 @@ EXPORT XS_runtime* XS_runtime_new() {
 }
 
 /****************************/
+
+#define icall_stack_base call_stack_base
+#define fcall_stack_base call_stack_base
+
 EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
     XS_runtime* rt = XS_context_get_runtime(context);
 
-    // Call stack
-    size_t/**/CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull;
+    size_t/**/CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull, environment_base = 0ull;
     XS_store* CALL_STACKF[MAX_STACK_SIZE];
+    XS_environment* ENVIRONMENT[MAX_STACK_SIZE];
     
     // Initialize call stack
-    CALL_STACKI[call_stack_base] = 0ull;
-    CALL_STACKF[call_stack_base] = store;
+    CALL_STACKI[icall_stack_base] = 0ull;
+    CALL_STACKF[fcall_stack_base] = store;
+    ENVIRONMENT[environment_base] = store->environment;
 
     size_t i = CALL_STACKI[call_stack_base];
+    XS_environment* environment = ENVIRONMENT[environment_base];
+    XS_instruction* instruction;
     for (;;) {
-        XS_instruction* instruction = CALL_STACKF[call_stack_base]->instructions[i++];
+        instruction = CALL_STACKF[call_stack_base]->instructions[i++];
         if (instruction == NULL) {
             break;
         }
         switch (instruction->opcode) {
             // Variables
             case LOAD_NAME: {
-                // CALL_STACKF[pointer]->
+                const char* variable = ((const char*) instruction->str_0);
+                /***********************/
                 XS_value* value = NULL;
+                XS_environment* current = environment;
+                while (current != NULL) {
+                    if (XS_environment_has(current, variable)) {
+                        value = XS_environment_get(current, variable);
+                        break;
+                    }
+                    current = current->parent;
+                }
                 PUSH(
                     ( value == NULL )
-                    ? XS_NIL(context) 
+                    ? XS_ERR(context, str__format("NameError: name '%s' is not defined", variable)) 
                     : value
                 );
+                break;
+            }
+            case STORE_NAME_IMMEDIATE: {
+                const char* variable = ((const char*) instruction->str_0);
+                /***********************/
+                XS_value* value = POP();
+                XS_environment_set(environment, variable, value);
+                break;
+            }
+            case STORE_NAME: {
+                const char* variable = ((const char*) instruction->str_0);
+                /***********************/ 
+                XS_value* value = PEEK();
+                XS_environment* current = environment;
+                while (current != NULL) {
+                    if (XS_environment_has(current, variable)) {
+                        XS_environment_set(current, variable, value);
+                        break;
+                    }
+                    current = current->parent;
+                }
+                if (current == NULL) {
+                    POP();
+                    PUSH(XS_ERR(context, str__format("NameError: name '%s' is not defined", variable)));
+                }
                 break;
             }
             // Constants
@@ -51,16 +92,20 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 break;
             // Object operations
             case SET_GLOBAL_PROPERTY: {
+                const char* variable = ((const char*) instruction->str_0);
+                /***********************/
                 XS_value* value = PEEK();
-                object_set(context->global_object->value.obj_value, XS_STR(context, instruction->str_0), value);
+                object_set(context->global_object->value.obj_value, XS_STR(context, variable), value);
                 break;
             }
             case GET_GLOBAL_PROPERTY: {
+                const char* variable = ((const char*) instruction->str_0);
+                /***************/
                 XS_value* value = 
-                object_get(context->global_object->value.obj_value, XS_STR(context, instruction->str_0));
+                object_get(context->global_object->value.obj_value, XS_STR(context, variable));
                 PUSH(
                     ( value == NULL ) 
-                    ? XS_NIL(context) 
+                    ? XS_ERR(context, str__format("NameError: name '%s' is not defined", variable))
                     : value
                 );
                 break;
@@ -111,6 +156,22 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                     /**** CALL FUNCTION *****************/
                     XS_value* ret = ((cfunction_t) fn->value.obj_value)(context, argv, instruction->data_0);
                     PUSH(ret);
+                } else if (XS_value_is_define_function(fn)) {
+                    ENVIRONMENT[++environment_base] = fn->store->environment;
+                    environment = ENVIRONMENT[environment_base];
+
+                    /**** CHECK IF SIGNITURE MATCHED ****/ 
+                    if (fn->argc != instruction->data_0) {
+                        XS_value* error = XS_ERR(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
+                        PUSH(error);
+                        break;
+                    }
+                    /**** CALL FUNCTION *****************/
+                    CALL_STACKI[call_stack_base++] = i;
+                    CALL_STACKI[ call_stack_base ] = i = 0;
+                    CALL_STACKF[ call_stack_base ] = fn->store;
+                } else {
+                    PUSH(XS_ERR(context, "TypeError: 'TypeName' object is not callable"));
                 }
                 break;
             }
@@ -126,7 +187,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 else if (XS_IS_NUM(a) && XS_IS_NUM(b))
                     c = XS_FLT(context, XS_GET_NUM(a) * XS_GET_NUM(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (*): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -143,7 +204,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 else if (XS_IS_STR(a) && XS_IS_STR(b))
                     c = XS_STR(context, str__add(XS_GET_STR(a), XS_GET_STR(b)));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (+): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -158,7 +219,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 else if (XS_IS_NUM(a) && XS_IS_NUM(b))
                     c = XS_FLT(context, XS_GET_NUM(a) - XS_GET_NUM(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (-): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -169,7 +230,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 if (XS_IS_INT(a) && XS_IS_INT(b))
                     c = XS_INT(context, XS_GET_INT(a) << XS_GET_INT(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (<<): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -180,7 +241,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 if (XS_IS_INT(a) && XS_IS_INT(b))
                     c = XS_INT(context, XS_GET_INT(a) >> XS_GET_INT(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (>>): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -195,7 +256,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 else if (XS_IS_NUM(a) && XS_IS_NUM(b))
                     c = XS_BIT(context, XS_GET_NUM(a) < XS_GET_NUM(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (<): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -210,7 +271,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 else if (XS_IS_NUM(a) && XS_IS_NUM(b))
                     c = XS_BIT(context, XS_GET_NUM(a) <= XS_GET_NUM(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (<=): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -225,7 +286,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 else if (XS_IS_NUM(a) && XS_IS_NUM(b))
                     c = XS_BIT(context, XS_GET_NUM(a) > XS_GET_NUM(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (>): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -240,7 +301,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 else if (XS_IS_NUM(a) && XS_IS_NUM(b))
                     c = XS_BIT(context, XS_GET_NUM(a) >= XS_GET_NUM(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (>=): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -267,7 +328,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 if (XS_IS_INT(a) && XS_IS_INT(b))
                     c = XS_BIT(context, XS_GET_INT(a) && XS_GET_INT(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (&): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -278,7 +339,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 if (XS_IS_INT(a) && XS_IS_INT(b))
                     c = XS_BIT(context, XS_GET_INT(a) || XS_GET_INT(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (|): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
@@ -289,16 +350,28 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 if (XS_IS_INT(a) && XS_IS_INT(b))
                     c = XS_BIT(context, XS_GET_INT(a) ^ XS_GET_INT(b));
                 else
-                    c = NULL;
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (^): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
                 PUSH(c);
                 break;
             }
             // Control
             case RETURN: {
                 if (call_stack_base == 0) {
-                    return;
+                    break;
                 }
+                environment = ENVIRONMENT[--environment_base];
                 i = CALL_STACKI[--call_stack_base];
+                break;
+            }
+            // Environment Block
+            case INITIALIZE_BLOCK: {
+                ENVIRONMENT[++environment_base] = XS_environment_new(environment);
+                environment = ENVIRONMENT[environment_base];
+                break;
+            }
+            case END_BLOCK: {
+                XS_environment_free(environment);
+                environment = ENVIRONMENT[--environment_base];
                 break;
             }
             // Jumps
@@ -357,7 +430,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 break;
             }
             default:
-                fprintf(stderr, "%s::%s[%d]: Unknown opcode!!!\n", __FILE__, __func__, __LINE__);
+                fprintf(stderr, "%s::%s[%d]: Unknown opcode (%d)!!!\n", __FILE__, __func__, __LINE__, instruction->opcode);
                 exit(1);
         }
     }

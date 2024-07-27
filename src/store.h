@@ -1,4 +1,5 @@
 #include "global.h"
+#include "environment.h"
 
 #ifndef STORE_H
 #define STORE_H
@@ -11,6 +12,7 @@
         char** stack; 
         size_t icount;
         XS_instruction** instructions;
+        XS_environment* environment;
     } XS_store;
 
     EXPORT XS_store* XS_store_new();
