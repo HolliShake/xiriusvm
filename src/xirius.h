@@ -1,4 +1,6 @@
 #include "context.h"
+#include "environment.h"
+#include "gc.h"
 #include "object.h"
 #include "opcode.h"
 #include "runtime.h"

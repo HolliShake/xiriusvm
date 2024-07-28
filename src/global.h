@@ -42,7 +42,7 @@
     typedef struct xirius_context_struct XS_context;
     // environment.h
     typedef struct xirius_environment_struct XS_environment;
-    typedef struct xirius_environment_cell_struct XS_environment_cell;
+    typedef struct xirius_environment_node_struct XS_environment_node_t;
     // gc.h
     typedef struct xirius_gc_struct XS_gc;
     // object.h
