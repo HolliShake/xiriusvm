@@ -1,8 +1,5 @@
 #include "store.h"
-
-#ifndef OPCODE_H
-    /*virtual*/ typedef struct xirius_instruction_struct XS_instruction;
-#endif
+#include "environment.h"
 
 EXPORT XS_store* XS_store_new() {
     XS_store* store = XS_malloc(sizeof(XS_store));

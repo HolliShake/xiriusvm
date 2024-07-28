@@ -1,15 +1,7 @@
 #include "global.h"
-#include "inttypes.h"
-#include "context.h"
-#include "object.h"
 
 #ifndef XSVALUE_H
 #define XSVALUE_H
-
-    #ifndef STORE_H
-        /*virtual*/ typedef struct xirius_store_struct XS_store;
-    #endif
-
     typedef enum xirius_value_type_enum {
         XS_INT,
         XS_FLT,
@@ -22,7 +14,6 @@
         XS_DEFINE_FUNCTION
     } XS_value_type;
 
-    typedef struct xirius_value_struct XS_value;
     typedef struct xirius_value_struct {
         bool marked;
         XS_value* next;
@@ -48,8 +39,6 @@
             void* obj_value;
         } value;
     } XS_value;
-
-    typedef XS_value* (*cfunction_t)(XS_context* context, XS_value* args[], int argc);
 
     #define XS_INT(context, i) XS_value_new_int(context, (const long long int) (i))
     #define XS_FLT(context, f) XS_value_new_flt(context, (const double) (f))

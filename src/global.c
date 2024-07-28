@@ -33,3 +33,11 @@ bool str__equals(const char* str0, const char* str1) {
     }
     return strcmp(str0, str1) == 0;
 }
+
+int64_t hash_string(const char* str) {
+    int64_t hash = 0;
+    for (size_t i = 0; i < strlen(str); i++) {
+        hash = (hash * 31) + str[i];
+    }
+    return hash;
+}

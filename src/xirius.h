@@ -1,3 +1,6 @@
+#include "context.h"
+#include "object.h"
 #include "opcode.h"
 #include "runtime.h"
 #include "store.h"
+#include "value.h"

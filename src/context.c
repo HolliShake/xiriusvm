@@ -1,9 +1,5 @@
 #include "context.h"
-
-#ifndef XSVALUE_H
-    /*virtual*/ typedef struct xirius_value_struct XS_value;
-    /*virtual*/ extern XS_value* XS_value_new_obj(XS_context* context);
-#endif
+#include "value.h"
 
 EXPORT XS_context* XS_context_new(XS_runtime* runtime) {
     XS_context* ctx = XS_malloc(sizeof(XS_context));

@@ -1,6 +1,4 @@
 #include "global.h"
-#include "store.h"
-#include "value.h"
 
 #ifndef OPCODE_H
 #define OPCODE_H

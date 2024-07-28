@@ -1,5 +1,6 @@
 #include "gc.h"
-
+#include "object.h"
+#include "value.h"
 
 EXPORT XS_gc* XS_gc_new() {
     XS_gc* gc = XS_malloc(sizeof(XS_gc));

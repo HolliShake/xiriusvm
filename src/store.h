@@ -1,12 +1,7 @@
 #include "global.h"
-#include "environment.h"
 
 #ifndef STORE_H
 #define STORE_H
-    #ifndef OPCODE_H
-        /*virtual*/ typedef struct xirius_instruction_struct XS_instruction;
-    #endif
-    
     typedef struct xirius_store_struct {
         size_t scount;
         char** stack; 

@@ -1,12 +1,7 @@
 #include "global.h"
 
 #ifndef XSGC_H
-#define XSGC_H
-    
-        #ifndef XSVALUE_H
-           #include "value.h"
-        #endif
-    
+#define XSGC_H    
         typedef struct xirius_gc_struct {
             XS_value* root;
         } XS_gc;

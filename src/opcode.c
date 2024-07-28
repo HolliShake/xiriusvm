@@ -1,4 +1,6 @@
 #include "opcode.h"
+#include "store.h"
+#include "value.h"
 
 EXPORT XS_instruction* XS_instruction_new(XS_opcode opcode) {
     XS_instruction* instruction = XS_malloc(sizeof(XS_instruction));

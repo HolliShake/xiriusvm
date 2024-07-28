@@ -905,6 +905,14 @@ bool utf_is_number(int codepoint) {
     }
 
     static
+    ast_t* ast_map(ast_t** keys, ast_t** values, position_t* pos) {
+        ast_t* ast = ast_init(AST_MAP, pos);
+        ast->multi_0 = keys;
+        ast->multi_1 = values;
+        return ast;
+    }
+
+    static
     ast_t* ast_call_expression(ast_t* callee, ast_t** args, position_t* pos) {
         ast_t* ast = ast_init(AST_CALL, pos);
         ast->data_0 = callee;
@@ -1103,6 +1111,33 @@ bool utf_is_number(int codepoint) {
                 ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
             ACCPETVALUE(")");
             return node;
+        }
+        else if (CHECKVALUE("{")) {
+            position_t* start = parser->lookahead->position, *ended = NULL;
+            ACCPETVALUE("{");
+            INIT_ARRAY(keys);
+            INIT_ARRAY(vals);
+
+            ast_t* key = parser_expression(parser), *val = NULL;
+            PUSH_ARRAY(keys, key);
+            while (key != NULL) {
+                key = NULL;
+                ACCPETVALUE(":");
+                val = parser_expression(parser);
+                if (val == NULL)
+                    ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+                PUSH_ARRAY(vals, val);
+                if (CHECKVALUE(",")) {
+                    ACCPETVALUE(",");
+                    key = parser_expression(parser);
+                    if (key == NULL)
+                        ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression after \",\"!", NULL);
+                    PUSH_ARRAY(keys, key);
+                }
+            }
+            ACCPETVALUE("}");
+            ended = parser->previous->position;
+            return ast_map(keys, vals, position_merge(start, ended));
         }
         else if (KEYWORD("define")) {
             position_t* start = parser->lookahead->position, *ended = NULL;
@@ -2083,6 +2118,23 @@ bool utf_is_number(int codepoint) {
                 free(node);
                 break;
             }
+            case AST_MAP: {
+                ast_t** keys = node->multi_0, **values = node->multi_1;
+                size_t i, j;
+                for (i = 0; values[i] != NULL; i++);
+
+                printf("Map size: %zu\n", i);
+                
+                j = i;
+                while (i > 0) {
+                    generator_expression(generator, scope, keys[i-1]);
+                    generator_expression(generator, scope, values[i-1]);
+                    i--;
+                }
+
+                XS_opcode_make_object(generator->store, j);
+                break;
+            }
             case AST_FUNCTION: {
                 ast_t** params = node->multi_0;
                 ast_t** statements = node->multi_1;
@@ -2743,7 +2795,7 @@ bool utf_is_number(int codepoint) {
 #endif
 
 
-XS_value* println(XS_context* context, XS_value** argv, int argc) {
+XS_value* println(XS_context* context, XS_environment* environment, XS_value** argv, int argc) {
     for (int i = 0; i < argc; i++) {
         XS_value* arg = argv[i];
         printf("%s", XS_value_to_const_string(arg));

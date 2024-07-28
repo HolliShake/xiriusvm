@@ -1,4 +1,10 @@
 #include "runtime.h"
+#include "context.h"
+#include "store.h"
+#include "opcode.h"
+#include "value.h"
+#include "object.h"
+#include "environment.h"
 
 #define MAX_STACK_SIZE 1024
 #define PUSH(x) (rt->evaluation_stack[++(rt->evaluation_stack_base)] = (x))
@@ -175,7 +181,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                         break;
                     }
                     /**** CALL FUNCTION *****************/
-                    XS_value* ret = ((cfunction_t) fn->value.obj_value)(context, argv, instruction->data_0);
+                    XS_value* ret = ((cfunction_t) fn->value.obj_value)(context, environment, argv, instruction->data_0);
                     PUSH(ret);
                 } else if (XS_value_is_define_function(fn)) {
                     int required_args = ((!fn->variadict) 
@@ -196,7 +202,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                     /**** CALL FUNCTION *****************/
                     ENVIRONMENT[++environment_base] = fn->store->environment;
                     environment = ENVIRONMENT[environment_base];
-                    
+
                     CALL_STACKI[call_stack_base++] = i;
                     CALL_STACKI[ call_stack_base ] = i = 0;
                     CALL_STACKF[ call_stack_base ] = fn->store;

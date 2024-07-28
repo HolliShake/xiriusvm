@@ -1,4 +1,5 @@
 
+
 define add(a, b) {
     println(a);
     println(b);
@@ -47,7 +48,7 @@ println(1, 2 ,3, 4, 5, 6, 7);
 
 println("Here!");
 const f = define(a) {
-    a(100);
+    a(2);
 };
 
 var m = 0;
@@ -61,3 +62,12 @@ while (m < 10) {
 }
 
 q();
+
+const ff = {
+    "a": 97,
+    "A": 65,
+    "b": 98,
+    "B": 66
+};
+
+println(ff);

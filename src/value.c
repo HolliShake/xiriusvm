@@ -1,8 +1,6 @@
 #include "value.h"
-
-#ifndef STORE_H
-    /*virtual*/ typedef struct xirius_store_struct XS_store;
-#endif
+#include "context.h"
+#include "object.h"
 
 static
 XS_value* XS_value_init(XS_context* context, XS_value_type type) {
@@ -174,14 +172,6 @@ int64_t hash_double(double d) {
     hash ^= (hash >> 32);
     hash *= 0xa5a5a5a5a5a5a5a5LL;
     hash ^= (hash >> 32);
-    return hash;
-}
-
-int64_t hash_string(const char* str) {
-    int64_t hash = 0;
-    for (size_t i = 0; i < strlen(str); i++) {
-        hash = (hash * 31) + str[i];
-    }
     return hash;
 }
 

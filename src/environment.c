@@ -1,6 +1,7 @@
 #include "environment.h"
+#include "value.h"
 
-XS_environment* XS_environment_new(XS_environment* parent) {
+EXPORT XS_environment* XS_environment_new(XS_environment* parent) {
     XS_environment* environment = XS_malloc(sizeof(XS_environment));
     assert_allocation(environment);
     environment->parent = parent;
@@ -14,15 +15,13 @@ XS_environment* XS_environment_new(XS_environment* parent) {
     return environment;
 }
 
-/*virtual*/ extern int64_t hash_string(const char* str);
-
-void XS_environment_set(XS_environment* environment, const char* name, XS_value* value) {
+EXPORT XS_value* XS_environment_set(XS_environment* environment, const char* name, XS_value* value) {
     size_t hash = hash_string(name) % environment->capacity;
     XS_environment_cell* cell = environment->bucket[hash];
     while (cell != NULL) {
         if (str__equals(cell->name, name)) {
             cell->value = value;
-            return;
+            return value;
         }
         cell = cell->next;
     }
@@ -36,9 +35,10 @@ void XS_environment_set(XS_environment* environment, const char* name, XS_value*
     if (environment->elements > environment->capacity * 0.75) {
         XS_environment_resize(environment);
     }
+    return value;
 }
 
-XS_value* XS_environment_get(XS_environment* environment, const char* name) {
+EXPORT XS_value* XS_environment_get(XS_environment* environment, const char* name) {
     size_t hash = hash_string(name) % environment->capacity;
     XS_environment_cell* cell = environment->bucket[hash];
     while (cell != NULL) {
@@ -53,7 +53,7 @@ XS_value* XS_environment_get(XS_environment* environment, const char* name) {
     return NULL;
 }
 
-bool XS_environment_has(XS_environment* environment, const char* name) {
+EXPORT bool XS_environment_has(XS_environment* environment, const char* name) {
     size_t hash = hash_string(name) % environment->capacity;
     XS_environment_cell* cell = environment->bucket[hash];
     while (cell != NULL) {
@@ -65,7 +65,7 @@ bool XS_environment_has(XS_environment* environment, const char* name) {
     return false;
 }
 
-void XS_environment_resize(XS_environment* environment) {
+EXPORT void XS_environment_resize(XS_environment* environment) {
     XS_environment_cell** new_bucket = XS_malloc(sizeof(XS_environment_cell*) * environment->capacity * 2);
     assert_allocation(new_bucket);
     for (size_t i = 0; i < environment->capacity * 2; i++) {
@@ -86,7 +86,7 @@ void XS_environment_resize(XS_environment* environment) {
     environment->capacity *= 2;
 }
 
-void XS_environment_reset(XS_environment* environment) {
+EXPORT void XS_environment_reset(XS_environment* environment) {
     for (size_t i = 0; i < environment->capacity; i++) {
         XS_environment_cell* cell = environment->bucket[i];
         while (cell != NULL) {
@@ -100,7 +100,7 @@ void XS_environment_reset(XS_environment* environment) {
     environment->elements = 0;
 }
 
-XS_environment* XS_environment_copy(XS_environment* environment) {
+EXPORT XS_environment* XS_environment_copy(XS_environment* environment) {
     XS_environment* new_environment = XS_malloc(sizeof(XS_environment));
     assert_allocation(new_environment);
     new_environment->parent = environment->parent;
@@ -121,7 +121,7 @@ XS_environment* XS_environment_copy(XS_environment* environment) {
     return new_environment;
 }
 
-void XS_environment_dump(XS_environment* environment) {
+EXPORT void XS_environment_dump(XS_environment* environment) {
     for (size_t i = 0; i < environment->capacity; i++) {
         XS_environment_cell* cell = environment->bucket[i];
         while (cell != NULL) {
@@ -131,7 +131,7 @@ void XS_environment_dump(XS_environment* environment) {
     }
 }
 
-void XS_environment_free(XS_environment* environment) {
+EXPORT void XS_environment_free(XS_environment* environment) {
     for (size_t i = 0; i < environment->capacity; i++) {
         XS_environment_cell* cell = environment->bucket[i];
         while (cell != NULL) {

@@ -1,9 +1,4 @@
 #include "global.h"
-#include "context.h"
-#include "store.h"
-#include "opcode.h"
-#include "value.h"
-#include "object.h"
 
 #ifndef RUNTIME_H
 #define RUNTIME_H

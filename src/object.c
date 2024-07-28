@@ -1,11 +1,5 @@
 #include "object.h"
-
- #ifndef XSVALUE_H // src/value.h
-    /*virtual*/ typedef struct xirius_value_struct XS_value;
-    /*virtual*/ extern const char* XS_value_to_const_string(XS_value* value);
-    /*virtual*/ extern bool XS_value_equals(XS_value* a, XS_value* b);
-    /*virtual*/ extern long long int XS_value_hash(XS_value* value);
-#endif
+#include "value.h"
 
 EXPORT object_t* object_new() {
     object_t* new_object = XS_malloc(sizeof(object_t));
@@ -20,13 +14,13 @@ EXPORT object_t* object_new() {
     return new_object;
 }
 
-EXPORT void object_set(object_t* object, XS_value* key, XS_value* value) {
+EXPORT XS_value* object_set(object_t* object, XS_value* key, XS_value* value) {
     size_t hash = XS_value_hash(key) % object->capacity;
     object_node_t* node = object->buckets[hash];
     while (node != NULL) {
         if (XS_value_equals(node->key, key)) {
             node->value = value;
-            return;
+            return value;
         }
         node = node->next;
     }
@@ -40,6 +34,7 @@ EXPORT void object_set(object_t* object, XS_value* key, XS_value* value) {
     if (object->element_count > object->capacity * 0.75) {
         object_resize(object, object->capacity * 2);
     }
+    return value;
 }
 
 EXPORT XS_value* object_get(object_t* object, XS_value* key) {
