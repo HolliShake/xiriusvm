@@ -1,10 +1,10 @@
+#include <inttypes.h>
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <inttypes.h>
 
 #ifndef GLOBAL_H
 #define GLOBAL_H

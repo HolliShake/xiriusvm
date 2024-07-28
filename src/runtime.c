@@ -1,10 +1,10 @@
 #include "runtime.h"
 #include "context.h"
-#include "store.h"
-#include "opcode.h"
-#include "value.h"
-#include "object.h"
 #include "environment.h"
+#include "object.h"
+#include "opcode.h"
+#include "store.h"
+#include "value.h"
 
 #define MAX_STACK_SIZE 1024
 #define PUSH(x) (rt->evaluation_stack[++(rt->evaluation_stack_base)] = (x))
