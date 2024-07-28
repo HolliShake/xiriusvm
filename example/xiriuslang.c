@@ -2093,6 +2093,7 @@ bool utf_is_number(int codepoint) {
                 // Save the current store
                 XS_store* store = generator->store, *current = NULL;
                 generator->store = XS_store_new();
+                // generator->store->environment->parent = store->environment;
 
                 symbol_table_t* current_table = generator->table;
                 generator->table = symbol_table_new(current_table);

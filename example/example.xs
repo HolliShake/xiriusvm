@@ -43,11 +43,15 @@ var h = (define(z) {
 
 println("_________");
 println(h);
-println(1,2,3,4, 5, 6, 7);
+println(1, 2 ,3, 4, 5, 6, 7);
 
-
-const f = define() {
-
+const f = define(a) {
+    a();
 };
 
-println(f(2, 3, 4, 5));
+var m = 0;
+while (m < 10) {
+    local g = m * 2;
+    f(define() { println(g); });
+    m = m + 1;
+}

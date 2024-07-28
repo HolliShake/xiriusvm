@@ -153,7 +153,10 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                         : fn->argc - 1);
 
                     /**** CHECK IF SIGNITURE MATCHED ****/ 
-                    if ((fn->variadict && instruction->data_0 < required_args) || (!fn->variadict && fn->argc != required_args)) {
+                    if (
+                        ( fn->variadict && instruction->data_0 < required_args) || 
+                        (!fn->variadict && instruction->data_0 > required_args)
+                    ) {
                         XS_value* error = XS_ERR(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
                         PUSH(error);
                         break;
@@ -170,7 +173,10 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                         : fn->argc - 1);
 
                     /**** CHECK IF SIGNITURE MATCHED ****/ 
-                    if ((fn->variadict && instruction->data_0 < required_args) || (!fn->variadict && fn->argc != required_args)) {
+                    if (
+                        ( fn->variadict && instruction->data_0 < required_args) || 
+                        (!fn->variadict && instruction->data_0 > required_args)
+                    ) {
                         XS_value* error = XS_ERR(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
                         PUSH(error);
                         break;
@@ -180,6 +186,8 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                     CALL_STACKI[ call_stack_base ] = i = 0;
                     CALL_STACKF[ call_stack_base ] = fn->store;
                 } else {
+                    for (size_t j = 0; j < instruction->data_0; j++)
+                        POP();
                     PUSH(XS_ERR(context, "TypeError: 'TypeName' object is not callable"));
                 }
                 break;
