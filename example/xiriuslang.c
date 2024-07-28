@@ -2011,7 +2011,6 @@ bool utf_is_number(int codepoint) {
                 } else {
                     XS_opcode_store_name(generator->store, left->str_0);
                 }
-                printf("symbol: %s\n", symbol->name);
                 break;
             }
             default:
@@ -2093,7 +2092,6 @@ bool utf_is_number(int codepoint) {
                 // Save the current store
                 XS_store* store = generator->store, *current = NULL;
                 generator->store = XS_store_new();
-                // generator->store->environment->parent = store->environment;
 
                 symbol_table_t* current_table = generator->table;
                 generator->table = symbol_table_new(current_table);
@@ -2114,7 +2112,6 @@ bool utf_is_number(int codepoint) {
                             false
                         )
                     );
-
                     params++;
                 }
 
@@ -2137,7 +2134,10 @@ bool utf_is_number(int codepoint) {
 
                 // XS_value_new_fun
                 XS_value* fn = XS_value_new_function(generator->context, current, false, false, "anon", paramc);
-                XS_opcode_push_const(generator->store, fn);
+                XS_opcode_push_callback(generator->store, fn);
+                // Cleanup
+                free(node->position);
+                free(node);
                 break;
             }
             case AST_CALL: {
@@ -2744,7 +2744,6 @@ bool utf_is_number(int codepoint) {
 
 
 XS_value* println(XS_context* context, XS_value** argv, int argc) {
-    printf("> ");
     for (int i = 0; i < argc; i++) {
         XS_value* arg = argv[i];
         printf("%s", XS_value_to_const_string(arg));

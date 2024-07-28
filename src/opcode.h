@@ -9,6 +9,7 @@
         STORE_NAME_IMMEDIATE,
         STORE_NAME,
         PUSH_CONST,
+        PUSH_CALLBACK,
         // Object operations
         SET_GLOBAL_PROPERTY,
         GET_GLOBAL_PROPERTY,
@@ -77,6 +78,7 @@
     EXPORT void XS_opcode_store_name(XS_store* store, const char* name);
     // Constants
     EXPORT void XS_opcode_push_const(XS_store* store, XS_value* value);
+    EXPORT void XS_opcode_push_callback(XS_store* store, XS_value* callback);
     // Object operations
     EXPORT void XS_opcode_set_global_property(XS_store* store, const char* name);
     EXPORT void XS_opcode_get_global_property(XS_store* store, const char* name);

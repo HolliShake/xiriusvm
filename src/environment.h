@@ -23,6 +23,7 @@
     bool XS_environment_has(XS_environment* environment, const char* name);
     void XS_environment_resize(XS_environment* environment);
     void XS_environment_reset(XS_environment* environment);
+    XS_environment* XS_environment_copy(XS_environment* environment);
     void XS_environment_dump(XS_environment* environment);
     void XS_environment_free(XS_environment* environment);
 #endif

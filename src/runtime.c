@@ -87,9 +87,23 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 break;
             }
             // Constants
-            case PUSH_CONST:
+            case PUSH_CONST: {
                 PUSH(instruction->value_0);
                 break;
+            }
+            case PUSH_CALLBACK: {
+                XS_value* value = instruction->value_0;
+                if (!XS_IS_DEFINE_FUNCTION(value)) {
+                    PUSH(XS_ERR(context, "TypeError: 'TypeName' object is not callable"));
+                    break;
+                }
+                value->store->environment->parent 
+                = (value->store->environment->parent == environment) 
+                ? (environment)
+                : (XS_environment_copy(environment));
+                PUSH(value);
+                break;
+            }
             // Object operations
             case SET_GLOBAL_PROPERTY: {
                 const char* variable = ((const char*) instruction->str_0);
@@ -144,9 +158,8 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 XS_value* fn = POP();
                 XS_value* argv[255/**** Max argc is 255 ****/];
                 if (XS_value_is_native_function(fn)) {
-                    for (size_t j = 0; j < instruction->data_0; j++) {
+                    for (size_t j = 0; j < instruction->data_0; j++)
                         argv[j] = POP();
-                    }
 
                     int required_args = ((!fn->variadict) 
                         ? fn->argc
@@ -154,8 +167,8 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
 
                     /**** CHECK IF SIGNITURE MATCHED ****/ 
                     if (
-                        ( fn->variadict && instruction->data_0 < required_args) || 
-                        (!fn->variadict && instruction->data_0 > required_args)
+                        ( fn->variadict && instruction->data_0 <  required_args) || 
+                        (!fn->variadict && instruction->data_0 != required_args)
                     ) {
                         XS_value* error = XS_ERR(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
                         PUSH(error);
@@ -165,23 +178,25 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                     XS_value* ret = ((cfunction_t) fn->value.obj_value)(context, argv, instruction->data_0);
                     PUSH(ret);
                 } else if (XS_value_is_define_function(fn)) {
-                    ENVIRONMENT[++environment_base] = fn->store->environment;
-                    environment = ENVIRONMENT[environment_base];
-
                     int required_args = ((!fn->variadict) 
                         ? fn->argc
                         : fn->argc - 1);
-
+                    
                     /**** CHECK IF SIGNITURE MATCHED ****/ 
                     if (
-                        ( fn->variadict && instruction->data_0 < required_args) || 
-                        (!fn->variadict && instruction->data_0 > required_args)
+                        ( fn->variadict && instruction->data_0 <  required_args) || 
+                        (!fn->variadict && instruction->data_0 != required_args)
                     ) {
+                        for (size_t j = 0; j < instruction->data_0; j++)
+                            POP();
                         XS_value* error = XS_ERR(context, (const char*) str__format("TypeError: %s() takes exactly %d arguments (%d given)", fn->name, fn->argc, instruction->data_0));
                         PUSH(error);
                         break;
                     }
                     /**** CALL FUNCTION *****************/
+                    ENVIRONMENT[++environment_base] = fn->store->environment;
+                    environment = ENVIRONMENT[environment_base];
+                    
                     CALL_STACKI[call_stack_base++] = i;
                     CALL_STACKI[ call_stack_base ] = i = 0;
                     CALL_STACKF[ call_stack_base ] = fn->store;
@@ -374,8 +389,6 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
             // Control
             case RETURN: {
                 XS_environment_reset(environment);
-                if (environment->parent != NULL)
-                    XS_environment_free(environment);
                 if (call_stack_base == 0)
                     break;
                 environment = ENVIRONMENT[--environment_base];

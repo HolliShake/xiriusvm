@@ -45,13 +45,19 @@ println("_________");
 println(h);
 println(1, 2 ,3, 4, 5, 6, 7);
 
+println("Here!");
 const f = define(a) {
-    a();
+    a(100);
 };
 
 var m = 0;
+var q = null;
+
 while (m < 10) {
     local g = m * 2;
-    f(define() { println(g); });
+    f(q = define() { println(g); });
+
     m = m + 1;
 }
+
+q();

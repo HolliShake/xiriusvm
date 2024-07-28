@@ -64,6 +64,14 @@ EXPORT void XS_opcode_push_const(XS_store* store, XS_value* value) {
     XS_store_push(store, instruction);
 }
 
+EXPORT void XS_opcode_push_callback(XS_store* store, XS_value* callback) {
+    XS_instruction* 
+        instruction = XS_instruction_new(PUSH_CALLBACK);
+        instruction->value_0 = callback;
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
 // Object operations
 EXPORT void XS_opcode_set_global_property(XS_store* store, const char* name) {
     XS_instruction* instruction = XS_instruction_new(SET_GLOBAL_PROPERTY);
