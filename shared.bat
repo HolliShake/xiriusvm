@@ -1,3 +1,3 @@
 @echo off
 
-clang -fPIC .\\src\\xirius.c .\\src\\*.c -lm -shared -o libxiriusvm.dll
+clang -fPIC .\\virtualmachine\\xirius.c .\\virtualmachine\\*.c -lm -ltcc -shared -o libxiriusvm.dll

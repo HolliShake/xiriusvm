@@ -2105,7 +2105,7 @@ bool utf_is_number(int codepoint) {
     }
 #endif
 
-#include "../src/xirius.h"
+#include "../virtualmachine/xirius.h"
 #ifndef GENERATOR_H
 #define GENERATOR_H
     // No optimization for now

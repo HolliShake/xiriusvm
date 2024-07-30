@@ -5,6 +5,7 @@
 #include "opcode.h"
 #include "store.h"
 #include "value.h"
+#include "operation.h"
 
 #define MAX_STACK_SIZE 1024
 #define PUSH(x) (rt->evaluation_stack[++(rt->evaluation_stack_base)] = (x))
@@ -338,178 +339,158 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
             case BINARY_MUL: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_INT(context, XS_GET_INT(a) * XS_GET_INT(b));
-                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
-                    c = XS_FLT(context, XS_GET_FLT(a) * XS_GET_FLT(b));
-                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
-                    c = XS_FLT(context, XS_GET_NUM(a) * XS_GET_NUM(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (*): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_mul(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (*): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case BINARY_ADD: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_INT(context, XS_GET_INT(a) + XS_GET_INT(b));
-                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
-                    c = XS_FLT(context, XS_GET_FLT(a) + XS_GET_FLT(b));
-                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
-                    c = XS_FLT(context, XS_GET_NUM(a) + XS_GET_NUM(b));
-                else if (XS_IS_STR(a) && XS_IS_STR(b))
-                    c = XS_STR(context, str__add(XS_GET_STR(a), XS_GET_STR(b)));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (+): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_add(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (+): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case BINARY_SUB: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_INT(context, XS_GET_INT(a) - XS_GET_INT(b));
-                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
-                    c = XS_FLT(context, XS_GET_FLT(a) - XS_GET_FLT(b));
-                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
-                    c = XS_FLT(context, XS_GET_NUM(a) - XS_GET_NUM(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (-): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_sub(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (-): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case BINARY_LSHIFT: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_INT(context, XS_GET_INT(a) << XS_GET_INT(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (<<): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_lshft(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (<<): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case BINARY_RSHIFT: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_INT(context, XS_GET_INT(a) >> XS_GET_INT(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (>>): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_rshft(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (>>): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case COMPARE_LESS: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_BIT(context, XS_GET_INT(a) < XS_GET_INT(b));
-                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
-                    c = XS_BIT(context, XS_GET_FLT(a) < XS_GET_FLT(b));
-                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
-                    c = XS_BIT(context, XS_GET_NUM(a) < XS_GET_NUM(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (<): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_compare_lt(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (<): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case COMPARE_LESS_EQUAL: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_BIT(context, XS_GET_INT(a) <= XS_GET_INT(b));
-                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
-                    c = XS_BIT(context, XS_GET_FLT(a) <= XS_GET_FLT(b));
-                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
-                    c = XS_BIT(context, XS_GET_NUM(a) <= XS_GET_NUM(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (<=): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_compare_lte(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (<=): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case COMPARE_GREATER: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_BIT(context, XS_GET_INT(a) > XS_GET_INT(b));
-                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
-                    c = XS_BIT(context, XS_GET_FLT(a) > XS_GET_FLT(b));
-                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
-                    c = XS_BIT(context, XS_GET_NUM(a) > XS_GET_NUM(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (>): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_compare_gt(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (>): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case COMPARE_GREATER_EQUAL: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_BIT(context, XS_GET_INT(a) >= XS_GET_INT(b));
-                else if (XS_IS_FLT(a) && XS_IS_FLT(b))
-                    c = XS_BIT(context, XS_GET_FLT(a) >= XS_GET_FLT(b));
-                else if (XS_IS_NUM(a) && XS_IS_NUM(b))
-                    c = XS_BIT(context, XS_GET_NUM(a) >= XS_GET_NUM(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (>=): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_compare_gte(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (>=): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case COMPARE_EQUAL: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                c = XS_BIT(context, (const bool) XS_value_equals(a, b));
+                XS_value* c = XS_operation_compare_eqt(context, a, b);
                 PUSH(c);
                 break;
             }
             case COMPARE_NOT_EQUAL: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                c = XS_BIT(context, (const bool) !XS_value_equals(a, b));
+                XS_value* c = XS_operation_compare_neq(context, a, b);
                 PUSH(c);
                 break;
             }
             case BINARY_AND: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_BIT(context, XS_GET_INT(a) && XS_GET_INT(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (&): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_and(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (&): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case BINARY_OR: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_BIT(context, XS_GET_INT(a) || XS_GET_INT(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (|): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_or(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (|): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
             case BINARY_XOR: {
                 XS_value* b = POP();
                 XS_value* a = POP();
-                XS_value* c = NULL;
-                if (XS_IS_INT(a) && XS_IS_INT(b))
-                    c = XS_BIT(context, XS_GET_INT(a) ^ XS_GET_INT(b));
-                else
-                    c = XS_ERR(context, str__format("TypeError: unsupported operand type(s) for (^): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b)));
+                XS_value* c = XS_operation_xor(
+                    context, 
+                    a, 
+                    b, 
+                    str__format("TypeError: unsupported operand type(s) for (^): '%s' and '%s'", XS_value_to_const_string(a), XS_value_to_const_string(b))
+                );
                 PUSH(c);
                 break;
             }
