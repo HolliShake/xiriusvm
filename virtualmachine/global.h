@@ -16,6 +16,8 @@
 
     #define LABEL() printf("<%s::%s[%d] />\n", __FILE__, __func__, __LINE__)
 
+    #define IMPEXPTHEADERS 1
+
     #if defined(_WIN32) || defined(_WIN64)
         #define EXPORT __declspec(dllexport)
         #define IMPORT __declspec(dllimport)
