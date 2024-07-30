@@ -829,6 +829,8 @@ bool utf_is_number(int codepoint) {
         AST_NULL,
         AST_ARRAY,
         // 
+        AST_POSTFIX_PLUSPLUS,
+        AST_POSTFIX_MINUSMINUS,
         AST_UNARY_PLUSPLUS,
         AST_UNARY_MINUSMINUS,
         // 
@@ -930,6 +932,14 @@ bool utf_is_number(int codepoint) {
         ast_t* ast = ast_init(AST_CALL, pos);
         ast->data_0 = callee;
         ast->multi_0 = args;
+        return ast;
+    }
+
+    static
+    ast_t* ast_postfix_expression(ast_type_t type, char* op, ast_t* rhs, position_t* pos) {
+        ast_t* ast = ast_init(type, pos);
+        ast->str_0 = op;
+        ast->data_0 = rhs;
         return ast;
     }
 
@@ -1243,6 +1253,38 @@ bool utf_is_number(int codepoint) {
     }
 
     static
+    ast_t* parser_postfix(parser_t* parser) {
+        position_t* start = parser->lookahead->position, *ended = NULL;
+
+        ast_t* node = parser_access_or_call(parser);
+        if (node == NULL) {
+            return NULL;
+        }
+
+        if (CHECKVALUE("++")) {
+            ACCPETVALUE("++");
+            ended = parser->previous->position;
+            return ast_postfix_expression(
+                AST_POSTFIX_PLUSPLUS, 
+                "++", 
+                node,
+                position_merge(start, ended)
+            );
+        } else if (CHECKVALUE("--")) {
+            ACCPETVALUE("--");
+            ended = parser->previous->position;
+            return ast_postfix_expression(
+                AST_POSTFIX_MINUSMINUS, 
+                "--", 
+                node,
+                position_merge(start, ended)
+            );
+        }
+
+        return node;
+    }
+
+    static
     ast_t* parser_unary(parser_t* parser) {
         position_t* start = parser->lookahead->position, *ended = NULL;
         if (CHECKVALUE("++")) {
@@ -1272,7 +1314,7 @@ bool utf_is_number(int codepoint) {
                 position_merge(start, ended)
             );
         }
-        return parser_access_or_call(parser);
+        return parser_postfix(parser);
     }
 
     static
@@ -2151,13 +2193,26 @@ bool utf_is_number(int codepoint) {
     void generator_inplace_assignment_1(generator_t* generator, scope_t* scope, ast_t* node, bool is_postfix) {
         switch (node->type) {
             case AST_IDN: {
-                XS_opcode_increment(generator->store);
+                symbol_t* symbol = symbol_table_lookup(generator->table, node->str_0);
+                if (symbol->is_const)
+                    ERROR_F(generator->parser->lexer->path, node->position, "symbol \"%s\" is a constant and cannot be reassigned!!!", node->str_0);
+
+                if (is_postfix) {
+                    XS_opcode_rotate(generator->store);
+                }
+                if (symbol->is_global) {
+                    XS_opcode_set_global_property(generator->store, node->str_0);
+                    break;
+                }
                 XS_opcode_store_name(generator->store, node->str_0);
                 break;
             }
             case AST_INDEX: {
                 ast_t* object = node->data_0, *index = node->data_1;
-                XS_opcode_increment(generator->store);
+
+                if (is_postfix) {
+                    XS_opcode_rotate4(generator->store);
+                }
                 XS_opcode_set_attribute(generator->store);
                 break;
             }
@@ -2296,6 +2351,13 @@ bool utf_is_number(int codepoint) {
                 free(node);
                 break;
             }
+            case AST_INDEX: {
+                ast_t* object = node->data_0, *index = node->data_1;
+                generator_expression(generator, scope, index);
+                generator_expression(generator, scope, object);
+                XS_opcode_get_attribute(generator->store);
+                break;
+            }
             case AST_CALL: {
                 ast_t* callee = node->data_0;
                 ast_t** args = node->multi_0;
@@ -2317,15 +2379,38 @@ bool utf_is_number(int codepoint) {
                 free(node);
                 break;
             }
-            case AST_INDEX: {
-                ast_t* object = node->data_0, *index = node->data_1;
-                generator_expression(generator, scope, index);
-                generator_expression(generator, scope, object);
-                XS_opcode_get_attribute(generator->store);
+            case AST_POSTFIX_PLUSPLUS: {
+                generator_inplace_assignment_0(generator, scope, node->data_0);
+                XS_opcode_post_increment(generator->store);
+                generator_inplace_assignment_1(generator, scope, node->data_0, true);
+                XS_opcode_pop_top(generator->store);
+                // Cleanup
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_POSTFIX_MINUSMINUS: {
+                generator_inplace_assignment_0(generator, scope, node->data_0);
+                XS_opcode_post_decrement(generator->store);
+                generator_inplace_assignment_1(generator, scope, node->data_0, true);
+                XS_opcode_pop_top(generator->store);
+                // Cleanup
+                free(node->position);
+                free(node);
                 break;
             }
             case AST_UNARY_PLUSPLUS: {
                 generator_inplace_assignment_0(generator, scope, node->data_0);
+                XS_opcode_increment(generator->store);
+                generator_inplace_assignment_1(generator, scope, node->data_0, false);
+                // Cleanup
+                free(node->position);
+                free(node);
+                break;
+            }
+            case AST_UNARY_MINUSMINUS: {
+                generator_inplace_assignment_0(generator, scope, node->data_0);
+                XS_opcode_decrement(generator->store);
                 generator_inplace_assignment_1(generator, scope, node->data_0, false);
                 // Cleanup
                 free(node->position);

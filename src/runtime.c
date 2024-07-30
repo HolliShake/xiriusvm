@@ -81,6 +81,7 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 XS_environment* current = environment;
                 while (current != NULL) {
                     if (XS_environment_has(current, variable)) {
+                        printf("SET_GLOBAL_PROPERTY: %s = %s \n", variable, XS_value_to_const_string(value));
                         XS_environment_set(current, variable, value);
                         break;
                     }
@@ -181,6 +182,35 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 PUSH(a);
                 break;
             }
+            case ROTATE: {
+                XS_value* a = POP();
+                XS_value* b = POP();
+                PUSH(a);
+                PUSH(b);
+                break;
+            }
+            case ROTATE3: {
+                // A-B-C => B-C-A
+                XS_value* a = POP();
+                XS_value* b = POP();
+                XS_value* c = POP();
+                PUSH(a);
+                PUSH(c);
+                PUSH(b);
+                break;
+            }
+            case ROTATE4: {
+                // A-B-C-D => B-C-D-A
+                XS_value* a = POP();
+                XS_value* b = POP();
+                XS_value* c = POP();
+                XS_value* d = POP();
+                PUSH(a);
+                PUSH(d);
+                PUSH(c);
+                PUSH(b);
+                break;
+            }
             case POP_TOP:
                 POP();
                 break;
@@ -250,6 +280,27 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 PUSH(c);
                 break;
             }
+            case POST_INCREMENT: {
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a)) {
+                    c = XS_INT(context, XS_GET_INT(a) + 1);
+                    PUSH(c);
+                    PUSH(a);
+                    break;
+                }
+                else if (XS_IS_FLT(a)) {
+                    c = XS_FLT(context, XS_GET_FLT(a) + 1);
+                    PUSH(a);
+                    PUSH(c);
+                    break;
+                }
+                else {
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type for (+=): '%s'", XS_value_to_const_string(a)));
+                }
+                PUSH(c);
+                break;
+            }
             case DECREMENT:{
                 XS_value* a = POP();
                 XS_value* c = NULL;
@@ -259,6 +310,27 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                     c = XS_FLT(context, XS_GET_FLT(a) - 1);
                 else
                     c = XS_ERR(context, str__format("TypeError: unsupported operand type for (-=): '%s'", XS_value_to_const_string(a)));
+                PUSH(c);
+                break;
+            }
+            case POST_DECREMENT: {
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a)) {
+                    c = XS_INT(context, XS_GET_INT(a) - 1);
+                    PUSH(c);
+                    PUSH(a);
+                    break;
+                }
+                else if (XS_IS_FLT(a)) {
+                    c = XS_FLT(context, XS_GET_FLT(a) - 1);
+                    PUSH(a);
+                    PUSH(c);
+                    break;
+                }
+                else {
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type for (-=): '%s'", XS_value_to_const_string(a)));
+                }
                 PUSH(c);
                 break;
             }
@@ -520,6 +592,11 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 fprintf(stderr, "%s::%s[%d]: Unknown opcode (%d)!!!\n", __FILE__, __func__, __LINE__, instruction->opcode);
                 exit(1);
         }
+    }
+
+    if ((context->runtime->evaluation_stack_base) != 1) {
+        fprintf(stderr, "%s::%s[%d]: Stack is not empty!!!\n", __FILE__, __func__, __LINE__);
+        exit(1);
     }
 
     i = 0;

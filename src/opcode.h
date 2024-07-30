@@ -17,11 +17,16 @@
         // Other operations
         DUP,
         DUP2,
+        ROTATE,
+        ROTATE3,
+        ROTATE4,
         POP_TOP,
         CALL,
         // 
         INCREMENT,
+        POST_INCREMENT,
         DECREMENT,
+        POST_DECREMENT,
         // Binary operations
         BINARY_MUL,
         BINARY_DIV,
@@ -92,11 +97,16 @@
     // Other operations
     EXPORT void XS_opcode_dup(XS_store* store);
     EXPORT void XS_opcode_dup2(XS_store* store);
+    EXPORT void XS_opcode_rotate(XS_store* store);
+    EXPORT void XS_opcode_rotate3(XS_store* store);
+    EXPORT void XS_opcode_rotate4(XS_store* store);
     EXPORT void XS_opcode_pop_top(XS_store* store);
     EXPORT void XS_opcode_call(XS_store* store, size_t argc);
     // 
     EXPORT void XS_opcode_increment(XS_store* store);
+    EXPORT void XS_opcode_post_increment(XS_store* store);
     EXPORT void XS_opcode_decrement(XS_store* store);
+    EXPORT void XS_opcode_post_decrement(XS_store* store);
     // Binary operations
     EXPORT void XS_opcode_binary_mul(XS_store* store);
     EXPORT void XS_opcode_binary_div(XS_store* store);

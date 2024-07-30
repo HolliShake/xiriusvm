@@ -121,6 +121,24 @@ EXPORT void XS_opcode_dup2(XS_store* store) {
     XS_store_push(store, instruction);
 }
 
+EXPORT void XS_opcode_rotate(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(ROTATE);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_rotate3(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(ROTATE3);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_rotate4(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(ROTATE4);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
 EXPORT void XS_opcode_pop_top(XS_store* store) {
     XS_instruction* instruction = XS_instruction_new(POP_TOP);
     // Push to store
@@ -141,8 +159,20 @@ EXPORT void XS_opcode_increment(XS_store* store) {
     XS_store_push(store, instruction);
 }
 
+EXPORT void XS_opcode_post_increment(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(POST_INCREMENT);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
 EXPORT void XS_opcode_decrement(XS_store* store) {
     XS_instruction* instruction = XS_instruction_new(DECREMENT);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_post_decrement(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(POST_DECREMENT);
     // Push to store
     XS_store_push(store, instruction);
 }
