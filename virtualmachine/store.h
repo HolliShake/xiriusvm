@@ -11,6 +11,6 @@
     } XS_store;
 
     EXPORT XS_store* XS_store_new();
-    EXPORT void XS_store_emit_line(XS_store* store, char* origin, size_t line, size_t colm);
+    EXPORT void XS_store_emit_line(XS_store* store, const char* origin, size_t line, size_t colm);
     EXPORT void XS_store_push(XS_store* store, XS_instruction* instruction);
 #endif

@@ -2392,11 +2392,8 @@ bool utf_is_number(int codepoint) {
                 }
 
                 if (!function_scope->returned) {
-                    printf("function not returned!!!\n");
                     XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
                     XS_opcode_return(generator->store);
-                } else {
-                    printf("function returned!!!\n");
                 }
 
                 // Restore the store

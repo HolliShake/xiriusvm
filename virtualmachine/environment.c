@@ -19,7 +19,7 @@ EXPORT XS_value* XS_environment_set(XS_environment* environment, const char* nam
     size_t hash = hash_string(name) % environment->capacity;
     XS_environment_node_t* cell = environment->bucket[hash];
     while (cell != NULL) {
-        if (str__equals(cell->name, name)) {
+        if (str__equals(name, cell->name)) {
             cell->value = value;
             return value;
         }
@@ -42,7 +42,7 @@ EXPORT XS_value* XS_environment_get(XS_environment* environment, const char* nam
     size_t hash = hash_string(name) % environment->capacity;
     XS_environment_node_t* cell = environment->bucket[hash];
     while (cell != NULL) {
-        if (str__equals(cell->name, name)) {
+        if (str__equals(name, cell->name)) {
             return cell->value;
         }
         cell = cell->next;
@@ -57,7 +57,7 @@ EXPORT bool XS_environment_has(XS_environment* environment, const char* name) {
     size_t hash = hash_string(name) % environment->capacity;
     XS_environment_node_t* cell = environment->bucket[hash];
     while (cell != NULL) {
-        if (str__equals(cell->name, name)) {
+        if (str__equals(name, cell->name)) {
             return true;
         }
         cell = cell->next;

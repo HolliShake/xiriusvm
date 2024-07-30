@@ -12,7 +12,7 @@ EXPORT XS_store* XS_store_new() {
     return store;
 }
 
-EXPORT void XS_store_emit_line(XS_store* store, char* origin, size_t line, size_t colm) {
+EXPORT void XS_store_emit_line(XS_store* store, const char* origin, size_t line, size_t colm) {
     if (store->stack == NULL) {
         store->stack = XS_malloc(sizeof(char*));
         assert_allocation(store->stack);
