@@ -599,6 +599,11 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
         exit(1);
     }
 
+    if (!XS_IS_NIL(PEEK())) {
+        fprintf(stderr, "%s::%s[%d]: PROGRAM DID NOT RETURN NULL!!!\n", __FILE__, __func__, __LINE__);
+        exit(1);
+    }
+
     i = 0;
     for (;;) {
         XS_instruction* instruction = store->instructions[i++];
