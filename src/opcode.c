@@ -89,6 +89,12 @@ EXPORT void XS_opcode_get_global_property(XS_store* store, const char* name) {
     XS_store_push(store, instruction);
 }
 
+EXPORT void XS_opcode_set_attribute(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(SET_ATTRIBUTE);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
 EXPORT void XS_opcode_get_attribute(XS_store* store) {
     XS_instruction* instruction = XS_instruction_new(GET_ATTRIBUTE);
     // Push to store
@@ -103,6 +109,18 @@ EXPORT void XS_opcode_make_object(XS_store* store, size_t pair_count) {
 }
 
 // Other operations
+EXPORT void XS_opcode_dup(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(DUP);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_dup2(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(DUP2);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
 EXPORT void XS_opcode_pop_top(XS_store* store) {
     XS_instruction* instruction = XS_instruction_new(POP_TOP);
     // Push to store
@@ -112,6 +130,19 @@ EXPORT void XS_opcode_pop_top(XS_store* store) {
 EXPORT void XS_opcode_call(XS_store* store, size_t argc) {
     XS_instruction* instruction = XS_instruction_new(CALL);
         instruction->data_0 = argc;
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+// 
+EXPORT void XS_opcode_increment(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(INCREMENT);
+    // Push to store
+    XS_store_push(store, instruction);
+}
+
+EXPORT void XS_opcode_decrement(XS_store* store) {
+    XS_instruction* instruction = XS_instruction_new(DECREMENT);
     // Push to store
     XS_store_push(store, instruction);
 }

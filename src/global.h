@@ -35,6 +35,7 @@
     char* str__format(const char* format, ...);
     bool str__equals(const char* str0, const char* str1);
     /**** UTILITES ****/
+    int64_t hash_double(double d);
     int64_t hash_string(const char* str);
 
     /**** TYPE DEFS ****/

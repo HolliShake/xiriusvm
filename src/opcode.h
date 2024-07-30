@@ -11,11 +11,17 @@
         // Object operations
         SET_GLOBAL_PROPERTY,
         GET_GLOBAL_PROPERTY,
+        SET_ATTRIBUTE,
         GET_ATTRIBUTE,
         MAKE_OBJECT,
         // Other operations
+        DUP,
+        DUP2,
         POP_TOP,
         CALL,
+        // 
+        INCREMENT,
+        DECREMENT,
         // Binary operations
         BINARY_MUL,
         BINARY_DIV,
@@ -80,11 +86,17 @@
     // Object operations
     EXPORT void XS_opcode_set_global_property(XS_store* store, const char* name);
     EXPORT void XS_opcode_get_global_property(XS_store* store, const char* name);
+    EXPORT void XS_opcode_set_attribute(XS_store* store);
     EXPORT void XS_opcode_get_attribute(XS_store* store);
     EXPORT void XS_opcode_make_object(XS_store* store, size_t pair_count);
     // Other operations
+    EXPORT void XS_opcode_dup(XS_store* store);
+    EXPORT void XS_opcode_dup2(XS_store* store);
     EXPORT void XS_opcode_pop_top(XS_store* store);
     EXPORT void XS_opcode_call(XS_store* store, size_t argc);
+    // 
+    EXPORT void XS_opcode_increment(XS_store* store);
+    EXPORT void XS_opcode_decrement(XS_store* store);
     // Binary operations
     EXPORT void XS_opcode_binary_mul(XS_store* store);
     EXPORT void XS_opcode_binary_div(XS_store* store);

@@ -828,7 +828,12 @@ bool utf_is_number(int codepoint) {
         AST_BOOL,
         AST_NULL,
         AST_ARRAY,
+        // 
+        AST_UNARY_PLUSPLUS,
+        AST_UNARY_MINUSMINUS,
+        // 
         AST_MAP,
+        AST_INDEX,
         AST_CALL,
         AST_BIN_MUL,
         AST_BIN_DIV,
@@ -913,10 +918,26 @@ bool utf_is_number(int codepoint) {
     }
 
     static
+    ast_t* ast_index_expression(ast_t* object, ast_t* index, position_t* pos) {
+        ast_t* ast = ast_init(AST_INDEX, pos);
+        ast->data_0 = object;
+        ast->data_1 = index;
+        return ast;
+    }
+
+    static
     ast_t* ast_call_expression(ast_t* callee, ast_t** args, position_t* pos) {
         ast_t* ast = ast_init(AST_CALL, pos);
         ast->data_0 = callee;
         ast->multi_0 = args;
+        return ast;
+    }
+
+    static
+    ast_t* ast_unary_expression(ast_type_t type, char* op, ast_t* lhs, position_t* pos) {
+        ast_t* ast = ast_init(type, pos);
+        ast->str_0 = op;
+        ast->data_0 = lhs;
         return ast;
     }
 
@@ -1181,8 +1202,21 @@ bool utf_is_number(int codepoint) {
             return NULL;
         }
 
-        while (CHECKVALUE("(")) {
-            if (CHECKVALUE("(")) {
+        while (CHECKVALUE("[") || CHECKVALUE("(")) {
+            if (CHECKVALUE("[")) {
+                // access
+                ACCPETVALUE("[");
+                ast_t* index = parser_expression(parser);
+                if (index == NULL)
+                    ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+                ACCPETVALUE("]");
+                ended = parser->previous->position;
+                node = ast_index_expression(
+                    node, index, 
+                    position_merge(start, ended)
+                );
+            }
+            else if (CHECKVALUE("(")) {
                 // call
                 ACCPETVALUE("(");
                 
@@ -1210,6 +1244,34 @@ bool utf_is_number(int codepoint) {
 
     static
     ast_t* parser_unary(parser_t* parser) {
+        position_t* start = parser->lookahead->position, *ended = NULL;
+        if (CHECKVALUE("++")) {
+            ACCPETVALUE("++");
+            ast_t* node = parser_unary(parser);
+            if (node == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+            ended = parser->previous->position;
+
+            return ast_unary_expression(
+                AST_UNARY_PLUSPLUS, 
+                "++", 
+                node,
+                position_merge(start, ended)
+            );
+        } else if (CHECKVALUE("--")) {
+            ACCPETVALUE("--");
+            ast_t* node = parser_unary(parser);
+            if (node == NULL)
+                ERROR_F(parser->lexer->path, parser->lookahead->position, "expected an expression!", NULL);
+            ended = parser->previous->position;
+
+            return ast_unary_expression(
+                AST_UNARY_MINUSMINUS, 
+                "--", 
+                node,
+                position_merge(start, ended)
+            );
+        }
         return parser_access_or_call(parser);
     }
 
@@ -2060,7 +2122,49 @@ bool utf_is_number(int codepoint) {
     }\
 
     static
+    void generator_expression(generator_t* generator, scope_t* scope, ast_t* node);
+
+    static
     void generator_statement(generator_t* generator, scope_t* scope, ast_t* node);
+
+    static
+    void generator_inplace_assignment_0(generator_t* generator, scope_t* scope, ast_t* node) {
+        switch (node->type) {
+            case AST_IDN: {
+                generator_expression(generator, scope, node);
+                break;
+            }
+            case AST_INDEX: {
+                ast_t* object = node->data_0, *index = node->data_1;
+                generator_expression(generator, scope, index);
+                generator_expression(generator, scope, object);
+                XS_opcode_dup2(generator->store);
+                XS_opcode_get_attribute(generator->store);
+                break;
+            }
+            default:
+                ERROR_F(generator->parser->lexer->path, node->position, "invalid left-hand expression!!!", NULL);
+        }
+    }
+
+    static
+    void generator_inplace_assignment_1(generator_t* generator, scope_t* scope, ast_t* node, bool is_postfix) {
+        switch (node->type) {
+            case AST_IDN: {
+                XS_opcode_increment(generator->store);
+                XS_opcode_store_name(generator->store, node->str_0);
+                break;
+            }
+            case AST_INDEX: {
+                ast_t* object = node->data_0, *index = node->data_1;
+                XS_opcode_increment(generator->store);
+                XS_opcode_set_attribute(generator->store);
+                break;
+            }
+            default:
+                ERROR_F(generator->parser->lexer->path, node->position, "invalid right-hand expression!!!", NULL);
+        }
+    }
 
     static
     void generator_expression(generator_t* generator, scope_t* scope, ast_t* node) {
@@ -2210,6 +2314,21 @@ bool utf_is_number(int codepoint) {
                 // Cleanup
                 free(node->position);
                 free(node->multi_0);
+                free(node);
+                break;
+            }
+            case AST_INDEX: {
+                ast_t* object = node->data_0, *index = node->data_1;
+                generator_expression(generator, scope, index);
+                generator_expression(generator, scope, object);
+                XS_opcode_get_attribute(generator->store);
+                break;
+            }
+            case AST_UNARY_PLUSPLUS: {
+                generator_inplace_assignment_0(generator, scope, node->data_0);
+                generator_inplace_assignment_1(generator, scope, node->data_0, false);
+                // Cleanup
+                free(node->position);
                 free(node);
                 break;
             }

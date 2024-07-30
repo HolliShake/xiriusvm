@@ -71,3 +71,12 @@ const ff = {
 };
 
 println(ff);
+
+{
+    local k = 0;
+    println((2 + 3 * ++k + k) + k);
+}
+
+const res = ++(ff["a"]) + 3 - 1 + (2 + ff["a"]);
+println(res);
+println(ff);

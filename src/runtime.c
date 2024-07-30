@@ -130,6 +130,19 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 );
                 break;
             }
+            case SET_ATTRIBUTE: {
+                XS_value* val = POP();
+                XS_value* obj = POP();
+                XS_value* ind = POP();
+                if (XS_value_is_obj(obj)) {
+                    object_set(obj->value.obj_value, ind, val);
+                    PUSH(val);
+                    break;
+                } else {
+                    PUSH(XS_ERR(context, "TypeError: 'TypeName' object is not subscriptable"));
+                }
+                break;
+            }
             case GET_ATTRIBUTE: {
                 XS_value* obj = POP();
                 XS_value* ind = POP();
@@ -157,6 +170,17 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 break;
             }
             // Other operations
+            case DUP: {
+                PUSH(PEEK());
+                break;
+            }
+            case DUP2: {
+                XS_value* a = (rt->evaluation_stack[rt->evaluation_stack_base - 0]);
+                XS_value* b = (rt->evaluation_stack[rt->evaluation_stack_base - 1]);
+                PUSH(b);
+                PUSH(a);
+                break;
+            }
             case POP_TOP:
                 POP();
                 break;
@@ -211,6 +235,31 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                         POP();
                     PUSH(XS_ERR(context, "TypeError: 'TypeName' object is not callable"));
                 }
+                break;
+            }
+            // 
+            case INCREMENT: {
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a))
+                    c = XS_INT(context, XS_GET_INT(a) + 1);
+                else if (XS_IS_FLT(a))
+                    c = XS_FLT(context, XS_GET_FLT(a) + 1);
+                else
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type for (+=): '%s'", XS_value_to_const_string(a)));
+                PUSH(c);
+                break;
+            }
+            case DECREMENT:{
+                XS_value* a = POP();
+                XS_value* c = NULL;
+                if (XS_IS_INT(a))
+                    c = XS_INT(context, XS_GET_INT(a) - 1);
+                else if (XS_IS_FLT(a))
+                    c = XS_FLT(context, XS_GET_FLT(a) - 1);
+                else
+                    c = XS_ERR(context, str__format("TypeError: unsupported operand type for (-=): '%s'", XS_value_to_const_string(a)));
+                PUSH(c);
                 break;
             }
             // Binary operations

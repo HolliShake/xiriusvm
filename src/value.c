@@ -154,27 +154,6 @@ EXPORT bool XS_value_is_satisfiable(XS_value* value) {
 }
 
 // Utility
-static
-int64_t hash_double(double d) {
-    // Use type punning to interpret the bits of the double as an integer
-    union {
-        double d;
-        int64_t i;
-    } u;
-    
-    u.d = d;
-
-    // Hash the integer representation of the double
-    // A simple example: combine the bits using bit shifts and XOR
-    uint64_t hash = u.i;
-    hash ^= (hash >> 32);
-    hash *= 0xd6e8feb86659fd93LL;
-    hash ^= (hash >> 32);
-    hash *= 0xa5a5a5a5a5a5a5a5LL;
-    hash ^= (hash >> 32);
-    return hash;
-}
-
 EXPORT long long int XS_value_hash(XS_value* value) {
     if (XS_IS_INT(value))
         return XS_GET_INT(value);

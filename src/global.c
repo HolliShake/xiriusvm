@@ -34,6 +34,26 @@ bool str__equals(const char* str0, const char* str1) {
     return strcmp(str0, str1) == 0;
 }
 
+int64_t hash_double(double d) {
+    // Use type punning to interpret the bits of the double as an integer
+    union {
+        double d;
+        int64_t i;
+    } u;
+    
+    u.d = d;
+
+    // Hash the integer representation of the double
+    // A simple example: combine the bits using bit shifts and XOR
+    uint64_t hash = u.i;
+    hash ^= (hash >> 32);
+    hash *= 0xd6e8feb86659fd93LL;
+    hash ^= (hash >> 32);
+    hash *= 0xa5a5a5a5a5a5a5a5LL;
+    hash ^= (hash >> 32);
+    return hash;
+}
+
 int64_t hash_string(const char* str) {
     int64_t hash = 0;
     for (size_t i = 0; i < strlen(str); i++) {
