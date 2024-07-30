@@ -46,11 +46,11 @@ int64_t hash_double(double d) {
     // Hash the integer representation of the double
     // A simple example: combine the bits using bit shifts and XOR
     uint64_t hash = u.i;
-    hash ^= (hash >> 32);
+    hash ^= (hash >> 63);
     hash *= 0xd6e8feb86659fd93LL;
-    hash ^= (hash >> 32);
+    hash ^= (hash >> 63);
     hash *= 0xa5a5a5a5a5a5a5a5LL;
-    hash ^= (hash >> 32);
+    hash ^= (hash >> 63);
     return hash;
 }
 

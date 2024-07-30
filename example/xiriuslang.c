@@ -864,6 +864,7 @@ bool utf_is_number(int codepoint) {
         AST_WHILE,
         AST_IF,
         AST_BLOCK,
+        AST_RETURN_STMNT,
         AST_EXPR_STMNT,
         AST_PROGRAM
     } ast_type_t;
@@ -1014,6 +1015,13 @@ bool utf_is_number(int codepoint) {
     ast_t* ast_block(ast_t** statements, position_t* pos) {
         ast_t* ast = ast_init(AST_BLOCK, pos);
         ast->multi_0 = statements;
+        return ast;
+    }
+
+    static
+    ast_t* ast_return_stmnt(ast_t* expr, position_t* pos) {
+        ast_t* ast = ast_init(AST_RETURN_STMNT, pos);
+        ast->data_0 = expr;
         return ast;
     }
 
@@ -1797,6 +1805,16 @@ bool utf_is_number(int codepoint) {
     }
 
     static
+    ast_t* parser_return(parser_t* parser) {
+        position_t* start = parser->lookahead->position, *ended = NULL;
+        ACCPETVALUE("return");
+        ast_t* node = parser_expression(parser);
+        ACCPETVALUE(";");
+        ended = parser->previous->position;
+        return ast_return_stmnt(node, position_merge(start, ended));
+    }
+
+    static
     ast_t* parser_while(parser_t* parser) {
         position_t* start = parser->lookahead->position, *ended = NULL;
         ACCPETVALUE("while");
@@ -1872,6 +1890,9 @@ bool utf_is_number(int codepoint) {
         }
         else if (KEYWORD("local")) {
             return parser_local(parser);
+        }
+        else if (KEYWORD("return")) {
+            return parser_return(parser);
         }
         else if (KEYWORD("while")) {
             return parser_while(parser);
@@ -2061,6 +2082,8 @@ bool utf_is_number(int codepoint) {
     typedef struct xirius_scope_struct {
         scope_t* parent;
         scope_type_t type;
+        // if function or awaitable
+        bool returned;
     } scope_t;
 
     static
@@ -2071,6 +2094,7 @@ bool utf_is_number(int codepoint) {
 
         scope->parent = parent;
         scope->type = type;
+        scope->returned = false;
         return scope;
     }
 
@@ -2085,18 +2109,57 @@ bool utf_is_number(int codepoint) {
     }
 
     static
+    bool scope_is_conditional(scope_t* scope) {
+        scope_t* current = scope;
+        while (current->parent != NULL) {
+            if (current->type == SCOPE_CONDITIONAL)
+                return true;
+            current = current->parent;
+        }
+        return false;
+    }
+
+    static
+    bool scope_is_single(scope_t* scope) {
+        return scope->type == SCOPE_SINGLE;
+    }
+
+    static
     bool scope_is_loop(scope_t* scope) {
-        return scope->type == SCOPE_LOOP;
+        scope_t* current = scope;
+        while (current->parent != NULL) {
+            if (current->type == SCOPE_LOOP)
+                return true;
+            current = current->parent;
+        }
+        return false;
     }
 
     static
     bool scope_is_function(scope_t* scope) {
-        return scope->type == SCOPE_FUNCTION;
+        scope_t* current = scope;
+        while (current->parent != NULL) {
+            if (current->type == SCOPE_FUNCTION)
+                return true;
+            current = current->parent;
+        }
+        return false;
     }
 
     static
     bool scope_is_awaitable(scope_t* scope) {
-        return scope->type == SCOPE_AWAITABLE;
+        scope_t* current = scope;
+        while (current->parent != NULL) {
+            if (current->type == SCOPE_AWAITABLE)
+                return true;
+            current = current->parent;
+        }
+        return false;
+    }
+
+    static
+    bool scope_allow_return(scope_t* scope) {
+        return scope_is_function(scope) || scope_is_awaitable(scope);
     }
 
     static
@@ -2208,8 +2271,6 @@ bool utf_is_number(int codepoint) {
                 break;
             }
             case AST_INDEX: {
-                ast_t* object = node->data_0, *index = node->data_1;
-
                 if (is_postfix) {
                     XS_opcode_rotate4(generator->store);
                 }
@@ -2281,8 +2342,6 @@ bool utf_is_number(int codepoint) {
                 ast_t** keys = node->multi_0, **values = node->multi_1;
                 size_t i, j;
                 for (i = 0; values[i] != NULL; i++);
-
-                printf("Map size: %zu\n", i);
                 
                 j = i;
                 while (i > 0) {
@@ -2332,8 +2391,13 @@ bool utf_is_number(int codepoint) {
                     statements++;
                 }
 
-                XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
-                XS_opcode_return(generator->store);
+                if (!function_scope->returned) {
+                    printf("function not returned!!!\n");
+                    XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
+                    XS_opcode_return(generator->store);
+                } else {
+                    printf("function returned!!!\n");
+                }
 
                 // Restore the store
                 current = generator->store;
@@ -2645,8 +2709,10 @@ bool utf_is_number(int codepoint) {
                     statements++;
                 }
 
-                XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
-                XS_opcode_return(generator->store);
+                if (!function_scope->returned) {
+                    XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
+                    XS_opcode_return(generator->store);
+                }
 
                 // Restore the store
                 current = generator->store;
@@ -2813,6 +2879,9 @@ bool utf_is_number(int codepoint) {
 
                 size_t start = XS_opcode_get_current_jump_offset(generator->store);
                 XS_instruction* j0, *j1 = NULL;
+                scope_t* conditional_scope = scope_new(scope, SCOPE_CONDITIONAL),
+                *loop_scope = scope_new(conditional_scope, SCOPE_LOOP),
+                *single_scope = scope_new(loop_scope, SCOPE_SINGLE);
 
                 switch (condition->type) {
                     case AST_LOG_AND: {
@@ -2823,7 +2892,7 @@ bool utf_is_number(int codepoint) {
                         j1 =
                         XS_opcode_pop_jump_if_false(generator->store, 0);
                         // while body
-                        generator_statement(generator, scope, body);
+                        generator_statement(generator, single_scope, body);
                         XS_opcode_jump_absolute(generator->store, start);
                         XS_opcode_jump_to_current_offset(generator->store, j0);
                         XS_opcode_jump_to_current_offset(generator->store, j1);
@@ -2838,7 +2907,7 @@ bool utf_is_number(int codepoint) {
                         XS_opcode_pop_jump_if_false(generator->store, 0);
                         // while body
                         XS_opcode_jump_to_current_offset(generator->store, j0);
-                        generator_statement(generator, scope, body);
+                        generator_statement(generator, single_scope, body);
                         XS_opcode_jump_absolute(generator->store, start);
                         XS_opcode_jump_to_current_offset(generator->store, j1);
                         break;
@@ -2847,12 +2916,15 @@ bool utf_is_number(int codepoint) {
                         generator_expression(generator, scope, condition);
                         j0 = 
                         XS_opcode_pop_jump_if_false(generator->store, 0);
-                        generator_statement(generator, scope, body);
+                        generator_statement(generator, single_scope, body);
                         XS_opcode_jump_absolute(generator->store, start);
                         XS_opcode_jump_to_current_offset(generator->store, j0);
                         break;
                     }
                 }
+                scope_free(conditional_scope);
+                scope_free(loop_scope);
+                scope_free(single_scope);
                 // Cleanup
                 free(node->position);
                 free(node);
@@ -2913,10 +2985,12 @@ bool utf_is_number(int codepoint) {
                         generator_expression(generator, scope, condition);
                         j0 = XS_opcode_pop_jump_if_false(generator->store, 0);
                         j1 = NULL;
+                        // then
                         generator_statement(generator, conditional_scope, thenv);
                         j1 = XS_opcode_jump_forward(generator->store, 0);
 
                         XS_opcode_jump_to_current_offset(generator->store, j0);
+                        // else?
                         if (elsev != NULL) {
                             generator_statement(generator, single_scope, elsev);
                         }
@@ -2957,6 +3031,26 @@ bool utf_is_number(int codepoint) {
                 free(node->position);
                 free(node->multi_0);
                 free(node);
+                break;
+            }
+            case AST_RETURN_STMNT: {
+                if (!scope_allow_return(scope))
+                    ERROR_F(generator->parser->lexer->path, node->position, "return statement is only allowed in function or awaitable scope!", NULL);
+
+                scope_t* current = scope;
+                bool returned = false;
+                while (current->type != SCOPE_FUNCTION && current->type != SCOPE_AWAITABLE) {
+                    current = current->parent;
+                }
+
+                current->returned = !scope_is_conditional(scope);
+
+                if (node->data_0 != NULL) {
+                    generator_expression(generator, scope, node->data_0);
+                } else {
+                    XS_opcode_push_const(generator->store, XS_value_new_nil(generator->context));
+                }
+                XS_opcode_return(generator->store);
                 break;
             }
             case AST_EXPR_STMNT: {

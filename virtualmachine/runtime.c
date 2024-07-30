@@ -30,9 +30,9 @@ EXPORT XS_runtime* XS_runtime_new() {
 EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
     XS_runtime* rt = XS_context_get_runtime(context);
 
-    size_t/**/CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull, environment_base = 0ull;
-    XS_store* CALL_STACKF[MAX_STACK_SIZE];
-    XS_environment* ENVIRONMENT[MAX_STACK_SIZE];
+    size_t/********/ CALL_STACKI[MAX_STACK_SIZE], call_stack_base = 0ull, environment_base = 0ull;
+    XS_store* /****/ CALL_STACKF[MAX_STACK_SIZE];
+    XS_environment*  ENVIRONMENT[MAX_STACK_SIZE];
     
     // Initialize call stack
     CALL_STACKI[icall_stack_base] = 0ull;
@@ -82,7 +82,6 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
                 XS_environment* current = environment;
                 while (current != NULL) {
                     if (XS_environment_has(current, variable)) {
-                        printf("SET_GLOBAL_PROPERTY: %s = %s \n", variable, XS_value_to_const_string(value));
                         XS_environment_set(current, variable, value);
                         break;
                     }
@@ -496,9 +495,15 @@ EXPORT void XS_runtime_execute(XS_context* context, XS_store* store) {
             }
             // Control
             case RETURN: {
-                XS_environment_reset(environment);
                 if (call_stack_base == 0)
                     break;
+                
+                XS_environment* root = CALL_STACKF[call_stack_base]->environment, *current = environment;
+                while (root != current) {
+                    XS_environment_free(current);
+                    current = ENVIRONMENT[--environment_base];
+                }
+                
                 environment = ENVIRONMENT[--environment_base];
                 i = CALL_STACKI[--call_stack_base];
                 break;
