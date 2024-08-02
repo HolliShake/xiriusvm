@@ -108,3 +108,11 @@ EXPORT XS_ast* XS_ast_binary_expression(XS_ast_type variant, string opt, XS_ast*
     ast->data_1 = rhs;
     return ast;
 }
+
+EXPORT XS_ast* XS_ast_function(const char* name, XS_ast** parameters, XS_ast** body, XS_position* pos) {
+    XS_ast* ast = XS_ast_init(XS_AST_FUNCTION, pos);
+    ast->str = xs_ast_str_copy(name);
+    ast->multi_0 = parameters;
+    ast->multi_1 = body;
+    return ast;
+}

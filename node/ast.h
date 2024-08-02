@@ -47,6 +47,8 @@
         XS_AST_BINARY_AND,
         XS_AST_BINARY_OR,
         XS_AST_BINARY_XOR,
+        // 
+        XS_AST_FUNCTION,
     } XS_ast_type;
 
     #define string char*

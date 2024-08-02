@@ -875,6 +875,7 @@ bool utf_is_number(int codepoint) {
         // 
         char* str_0;
         char* str_1;
+        bool async;
         ast_t* data_0;
         ast_t* data_1;
         ast_t* data_2;
@@ -893,6 +894,7 @@ bool utf_is_number(int codepoint) {
         ast->type = type;
         ast->str_0 = NULL;
         ast->str_1 = NULL;
+        ast->async = false;
         // 
         ast->data_0 = NULL;
         ast->data_1 = NULL;
@@ -2366,9 +2368,12 @@ bool utf_is_number(int codepoint) {
                 symbol_table_t* current_table = generator->table;
                 generator->table = symbol_table_new(current_table);
 
+                void* params_0 = (*params);
                 size_t paramc = 0;
-                while (*params != NULL) {
-                    ++paramc;
+                
+                for (;(*params) != NULL;params++);
+                
+                while (*(params--) != params_0) {
                     ASSERT_IDENTIFIER((*params));
                     XS_opcode_store_name_immediate(generator->store, (const char*) ((*params)->str_0));
                     
@@ -2382,7 +2387,7 @@ bool utf_is_number(int codepoint) {
                             false
                         )
                     );
-                    params++;
+                    paramc++;
                 }
 
                 scope_t* local_scope = scope_new(function_scope, SCOPE_LOCAL);
@@ -2405,7 +2410,7 @@ bool utf_is_number(int codepoint) {
                 generator->table = current_table;
 
                 // XS_value_new_fun
-                XS_value* fn = XS_value_new_function(generator->context, current, false, false, "anon", paramc);
+                XS_value* fn = XS_value_new_function(generator->context, current, false, "anon", paramc);
                 XS_opcode_push_callback(generator->store, fn);
                 // Cleanup
                 free(node->position);
@@ -2427,9 +2432,10 @@ bool utf_is_number(int codepoint) {
                 for (i = 0; args[i] != NULL; i++);
 
                 j = i;
-                while (i > 0) {
-                    generator_expression(generator, scope, args[i - 1]);
-                    i--;
+                i = 0;
+                while (i < j) {
+                    generator_expression(generator, scope, args[i]);
+                    i++;
                 }
 
                 generator_expression(generator, scope, callee);
@@ -2680,9 +2686,12 @@ bool utf_is_number(int codepoint) {
                 symbol_table_t* current_table = generator->table;
                 generator->table = symbol_table_new(current_table);
 
+                void* params_0 = (*params);
                 size_t paramc = 0;
-                while (*params != NULL) {
-                    ++paramc;
+                
+                for (;(*params) != NULL;params++);
+                
+                while (*(params--) != params_0) {
                     ASSERT_IDENTIFIER((*params));
                     XS_opcode_store_name_immediate(generator->store, (const char*) ((*params)->str_0));
                     
@@ -2696,8 +2705,7 @@ bool utf_is_number(int codepoint) {
                             false
                         )
                     );
-
-                    params++;
+                    paramc++;
                 }
 
                 scope_t* local_scope = scope_new(function_scope, SCOPE_LOCAL);
@@ -2720,7 +2728,7 @@ bool utf_is_number(int codepoint) {
                 generator->table = current_table;
 
                 // XS_value_new_fun
-                XS_value* fn = XS_value_new_function(generator->context, current, false, false, name->str_0, paramc);
+                XS_value* fn = XS_value_new_function(generator->context, current, false, name->str_0, paramc);
                 XS_opcode_push_const(generator->store, fn);
                 XS_opcode_set_global_property(generator->store, name->str_0);
                 XS_opcode_pop_top(generator->store);
@@ -3083,9 +3091,11 @@ bool utf_is_number(int codepoint) {
     }
 
     static
-    XS_store* generator_generate(generator_t* generator) {
+    XS_value* generator_generate(generator_t* generator) {
         generator_statement(generator, NULL, parser_parse(generator->parser));
-        return generator->store;
+        XS_value* val = XS_value_new_code(generator->context, generator->store);
+        val->name = str__new("__main__");
+        return val;
     }
 #endif
 
@@ -3108,13 +3118,13 @@ int main(int argc, char** argv) {
     char* data = xirius_read_file(file);
 
     generator_t* generator = generator_new(file, data);
-    XS_store* store = generator_generate(generator);
+    XS_value* code = generator_generate(generator);
 
-    XS_value* println_fn = XS_value_new_cfunction(generator->context, println, false, true, "println", 1);
+    XS_value* println_fn = XS_value_new_cfunction(generator->context, println, true, "println", 1);
 
     object_set(generator->context->global_object->value.obj_value, XS_STR(generator->context, "println"), println_fn);
 
-    XS_runtime_execute(generator->context, store);
+    XS_runtime_execute(generator->context, code);
     printf("DONE!\n");
     return 0;
 }

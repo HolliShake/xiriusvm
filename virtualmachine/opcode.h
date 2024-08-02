@@ -77,6 +77,9 @@
         XS_value* value_1;
         XS_value* value_2;
         XS_value* value_3;
+        // If has flags
+        bool flag_0;
+        bool flag_1;
     } XS_instruction;
 
     EXPORT XS_instruction* XS_instruction_new(XS_opcode opcode);

@@ -9,6 +9,7 @@ EXPORT XS_context* XS_context_new(XS_runtime* runtime) {
     // Create global object
     ctx->global_object = XS_value_new_obj(ctx);
     ctx->null_obj = NULL;
+    // Garbage collector
 
     return ctx;
 }

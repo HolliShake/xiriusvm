@@ -22,6 +22,9 @@ EXPORT XS_instruction* XS_instruction_new(XS_opcode opcode) {
     instruction->value_1 = NULL;
     instruction->value_2 = NULL;
     instruction->value_3 = NULL;
+    // If has flags
+    instruction->flag_0 = false;
+    instruction->flag_1 = false;
     return instruction;
 }
 

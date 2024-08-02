@@ -4,7 +4,8 @@
 #define STORE_H
     typedef struct xirius_store_struct {
         size_t scount;
-        char** stack; 
+        char** stack;
+        size_t pointer;
         size_t icount;
         XS_instruction** instructions;
         XS_environment* environment;

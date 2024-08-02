@@ -2,6 +2,26 @@
 #include "context.h"
 #include "object.h"
 
+/*
+// Type
+XS_value_type type;
+
+// Store
+XS_store* store;
+
+// If named
+char* name;
+
+// Data
+bool variadict;
+int argc;
+XS_value* argv[255];
+
+// GC
+bool marked;
+XS_value* next;
+*/
+
 static
 XS_value* XS_value_init(XS_context* context, XS_value_type type) {
     XS_value* new_value = XS_malloc(sizeof(XS_value));
@@ -9,9 +29,10 @@ XS_value* XS_value_init(XS_context* context, XS_value_type type) {
     new_value->type = type;
     new_value->store = NULL;
     new_value->name = NULL;
-    new_value->argc = 0;
-    new_value->async = false;
     new_value->variadict = false;
+    new_value->argc = 0;
+    new_value->marked = false;
+    new_value->next = NULL;
     new_value->value.int_value = 0;
     new_value->value.flt_value = 0;
     new_value->value.str_value = NULL;
@@ -58,16 +79,25 @@ EXPORT XS_value* XS_value_new_err(XS_context* context, const char* message) {
     return new_value;
 }
 
+EXPORT XS_value* XS_value_new_code(XS_context* context, XS_store* store) {
+    XS_value* new_value = XS_value_init(context, XS_CODE);
+    new_value->store = store;
+    return new_value;
+}
+
 EXPORT XS_value *XS_value_new_obj(XS_context* context) {
     XS_value* new_value = XS_value_init(context, XS_OBJ);
     new_value->value.obj_value = object_new();
     return new_value;
 }
+    EXPORT void XS_value_set_object_property(XS_value* object, XS_value* key, XS_value* value) {
+        object_set(object->value.obj_value, key, value);
+    }
     EXPORT XS_value* XS_value_get_object_property(XS_value* object, XS_value* key) {
         return object_get(object->value.obj_value, key);
     }
 
-EXPORT XS_value* XS_value_new_cfunction(XS_context* context, cfunction_t cfunction, bool async, bool variadict, const char* name, int argc) {
+EXPORT XS_value* XS_value_new_cfunction(XS_context* context, cfunction_t cfunction, bool variadict, const char* name, int argc) {
     XS_value* new_value = XS_value_init(context, XS_NATIVE_FUNCTION);
     if (variadict && argc <= 0) {
         fprintf(stderr, "%s::%s[%d]: variadic functions must have atleast one argument!\n", __FILE__, __func__, __LINE__);
@@ -75,13 +105,12 @@ EXPORT XS_value* XS_value_new_cfunction(XS_context* context, cfunction_t cfuncti
     }
     new_value->name = str__new(name);
     new_value->argc = argc;
-    new_value->async = async;
     new_value->variadict = variadict;
     new_value->value.obj_value = cfunction;
     return new_value;
 }
 
-EXPORT XS_value* XS_value_new_function(XS_context* context, XS_store* store, bool async, bool variadict, const char* name, int argc) {
+EXPORT XS_value* XS_value_new_function(XS_context* context, XS_store* store, bool variadict, const char* name, int argc) {
     XS_value* new_value = XS_value_init(context,  XS_DEFINE_FUNCTION);
     if (variadict && argc <= 0) {
         fprintf(stderr, "%s::%s[%d]: variadic functions must have atleast one argument!\n", __FILE__, __func__, __LINE__);
@@ -90,9 +119,7 @@ EXPORT XS_value* XS_value_new_function(XS_context* context, XS_store* store, boo
     new_value->store = store;
     new_value->name = str__new(name);
     new_value->argc = argc;
-    new_value->async = async;
     new_value->variadict = variadict;
-    new_value->value.obj_value = NULL;
     return new_value;
 }
 
@@ -129,12 +156,20 @@ EXPORT bool XS_value_is_obj(XS_value* value) {
     return XS_IS_OBJ(value);
 }
 
+EXPORT bool XS_value_is_code(XS_value* value) {
+    return XS_IS_CODE(value);
+}
+
 EXPORT bool XS_value_is_native_function(XS_value* value) {
     return XS_IS_NATIVE_FUNCTION(value);
 }
 
 EXPORT bool XS_value_is_define_function(XS_value* value) {
     return XS_IS_DEFINE_FUNCTION(value);
+}
+
+EXPORT bool XS_value_is_callable(XS_value* value) {
+    return (XS_IS_NATIVE_FUNCTION(value) || XS_IS_DEFINE_FUNCTION(value));
 }
 
 EXPORT bool XS_value_is_satisfiable(XS_value* value) {
@@ -183,12 +218,13 @@ EXPORT bool XS_value_equals(XS_value* a, XS_value* b) {
         return (XS_GET_BIT(a) == XS_GET_BIT(b));
     else if (XS_IS_NIL(a) && XS_IS_NIL(b))
         return true;
-    else
-        printf("%s::%s[%d]:warning: [Not Implemented]!!!\n", __FILE__, __func__, __LINE__);
     return (a == b);
 }
 
 EXPORT const char* XS_value_to_const_string(XS_value* value) {
+    if (!value) {
+        return str__new("null");
+    }
     switch (value->type) {
         case XS_INT:
             return (const char*) str__format("%lld", value->value.int_value);

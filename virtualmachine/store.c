@@ -6,6 +6,7 @@ EXPORT XS_store* XS_store_new() {
     assert_allocation(store);
     store->scount = 0;
     store->stack = NULL;
+    store->pointer = 0;
     store->icount = 0;
     store->instructions = NULL;
     store->environment = XS_environment_new(NULL);
